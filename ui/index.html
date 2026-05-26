@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI求职助手 — AI Job Assistant</title>
+<style>
+/* ====== Design Tokens ====== */
+:root {
+  --bg: #F7F8FA;
+  --card: #FFFFFF;
+  --text: #111827;
+  --text2: #5B6270;
+  --text3: #9499A5;
+  --accent: #4F7CFF;
+  --accent-hover: #3B6AE0;
+  --accent-light: #EEF3FF;
+  --accent-glow: rgba(79,124,255,.12);
+  --success: #19B37D;
+  --warning: #F59E0B;
+  --border: #E8ECF2;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,.04);
+  --shadow-hover: 0 8px 24px rgba(0,0,0,.06);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:var(--font); background:var(--bg); color:var(--text); min-height:100vh; line-height:1.6; }
+
+/* ====== Header ====== */
+.header { display:flex; justify-content:space-between; align-items:center; padding:16px 32px; background:rgba(255,255,255,.8); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; }
+.header .logo { display:flex; align-items:center; gap:10px; font-size:15px; font-weight:700; color:var(--text); text-decoration:none; }
+.header .logo .icon { width:34px; height:34px; background:var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:17px; color:#fff; }
+.header nav { display:flex; gap:4px; }
+.header nav a { color:var(--text2); text-decoration:none; font-size:13px; padding:6px 12px; border-radius:8px; transition:all .15s; }
+.header nav a:hover { background:var(--accent-light); color:var(--accent); }
+
+/* ====== Main Layout ====== */
+.main { max-width:900px; margin:0 auto; padding:0 20px 80px; }
+
+/* ====== Hero ====== */
+.hero { text-align:center; padding:60px 0 40px; }
+.hero .badge { display:inline-block; padding:4px 14px; border-radius:20px; font-size:11px; font-weight:600; background:var(--accent-light); color:var(--accent); margin-bottom:20px; letter-spacing:.5px; }
+.hero h1 { font-size:36px; font-weight:800; letter-spacing:-.5px; margin-bottom:12px; line-height:1.2; }
+.hero h1 .gradient { color:var(--accent); font-weight:800; }
+.hero .sub { font-size:16px; color:var(--text2); max-width:480px; margin:0 auto; line-height:1.6; }
+
+/* ====== Input Panel ====== */
+.input-panel { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; margin-bottom:32px; transition:box-shadow .3s; }
+.input-panel:focus-within { box-shadow:0 0 0 3px var(--accent-glow), var(--shadow-hover); }
+
+/* Mode Tabs */
+.mode-tabs { display:flex; border-bottom:1px solid var(--border); }
+.mode-tab { flex:1; padding:14px 20px; font-size:13px; font-weight:500; color:var(--text3); cursor:pointer; border:none; background:none; transition:all .15s; display:flex; align-items:center; justify-content:center; gap:8px; font-family:var(--font); }
+.mode-tab:hover { color:var(--text2); background:#fafbfc; }
+.mode-tab.active { color:var(--accent); box-shadow:inset 0 -2px 0 var(--accent); font-weight:600; }
+
+/* Tab Content */
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+/* Textarea */
+.input-body { padding:20px 24px; }
+.input-body textarea { width:100%; min-height:180px; border:none; resize:vertical; font-size:14px; font-family:var(--font); line-height:1.8; outline:none; color:var(--text); }
+.input-body textarea::placeholder { color:var(--text3); }
+
+/* Upload Zone */
+.upload-body { padding:20px 24px; }
+.upload-zone { border:1.5px dashed var(--border); border-radius:12px; padding:40px 24px; text-align:center; cursor:pointer; transition:all .2s; }
+.upload-zone:hover { border-color:var(--accent); background:var(--accent-light); }
+.upload-zone.drag-over { border-color:var(--accent); background:var(--accent-light); box-shadow:0 0 0 3px var(--accent-glow); }
+.upload-zone .uz-icon { font-size:40px; margin-bottom:12px; }
+.upload-zone .uz-title { font-size:14px; font-weight:600; color:var(--text); margin-bottom:4px; }
+.upload-zone .uz-hint { font-size:12px; color:var(--text3); }
+
+.upload-preview { display:none; padding:20px 24px; border-top:1px solid var(--border); }
+.upload-preview.show { display:flex; align-items:center; gap:14px; }
+.upload-preview img { width:60px; height:60px; border-radius:8px; object-fit:cover; border:1px solid var(--border); }
+.upload-preview .up-info { flex:1; }
+.upload-preview .up-status { font-size:12px; color:var(--text2); display:flex; align-items:center; gap:6px; }
+.upload-preview .up-status.done { color:var(--success); }
+.upload-preview .up-progress { width:100%; height:4px; background:#e8eaef; border-radius:2px; margin-top:6px; overflow:hidden; }
+.upload-preview .up-progress .fill { height:100%; background:var(--accent); border-radius:2px; transition:width .3s; }
+
+/* Input Footer */
+.input-footer { display:flex; justify-content:space-between; align-items:center; padding:14px 24px; border-top:1px solid var(--border); background:#fafbfc; flex-wrap:wrap; gap:10px; }
+.example-chips { display:flex; gap:8px; flex-wrap:wrap; }
+.example-chip { padding:5px 12px; border-radius:20px; font-size:11px; border:1px solid var(--border); background:var(--card); cursor:pointer; transition:all .15s; color:var(--text2); font-family:var(--font); white-space:nowrap; }
+.example-chip:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+.btn-submit { padding:10px 28px; border-radius:var(--radius-sm); font-size:14px; font-weight:600; cursor:pointer; border:none; background:var(--accent); color:#fff; transition:all .2s; font-family:var(--font); display:flex; align-items:center; gap:8px; position:relative; overflow:hidden; }
+.btn-submit:hover { background:var(--accent-hover); box-shadow:0 4px 16px var(--accent-glow); transform:translateY(-1px); }
+.btn-submit:disabled { opacity:.5; cursor:not-allowed; transform:none; box-shadow:none; }
+.btn-submit::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,.2), transparent); transform:translateX(-100%); transition:transform .6s; }
+.btn-submit:not(:disabled):hover::after { transform:translateX(100%); }
+
+/* ====== Feature Cards ====== */
+.features { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:48px; }
+.feature-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; transition:all .2s; border:1px solid transparent; }
+.feature-card:hover { box-shadow:var(--shadow-hover); transform:translateY(-2px); border-color:var(--border); }
+.feature-card .fc-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:14px; }
+.feature-card h3 { font-size:14px; font-weight:600; margin-bottom:6px; }
+.feature-card p { font-size:12px; color:var(--text3); line-height:1.6; }
+
+/* ====== Workspace Area ====== */
+.workspace { display:none; }
+.workspace.active { display:block; }
+.workspace .ws-header { display:flex; justify-content:space-between; align-items:center; padding:20px 0; flex-wrap:wrap; gap:12px; }
+.workspace .ws-header .back-btn { padding:6px 14px; border-radius:8px; font-size:12px; cursor:pointer; border:1px solid var(--border); background:var(--card); color:var(--text2); transition:all .15s; font-family:var(--font); display:flex; align-items:center; gap:6px; }
+.workspace .ws-header .back-btn:hover { border-color:var(--accent); color:var(--accent); }
+.workspace .ws-header .ws-title { font-size:18px; font-weight:700; }
+
+/* WS Steps */
+.ws-steps { display:flex; gap:6px; margin-bottom:24px; flex-wrap:wrap; }
+.ws-step { padding:5px 12px; border-radius:20px; font-size:11px; font-weight:500; display:flex; align-items:center; gap:5px; background:var(--accent-light); color:var(--accent); }
+.ws-step.done { background:#ecfdf5; color:var(--success); }
+
+/* WS Cards Grid */
+.ws-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:24px; }
+.ws-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; transition:all .2s; }
+.ws-card:hover { box-shadow:var(--shadow-hover); }
+.ws-card .wsc-header { padding:16px 20px 12px; border-bottom:1px solid #f5f5f5; display:flex; align-items:center; gap:10px; }
+.ws-card .wsc-header .wsc-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; }
+.ws-card .wsc-header h3 { font-size:14px; font-weight:600; }
+.ws-card .wsc-body { padding:16px 20px; max-height:420px; overflow-y:auto; }
+.ws-card .wsc-body::-webkit-scrollbar { width:4px; }
+.ws-card .wsc-body::-webkit-scrollbar-thumb { background:#e0e0e0; border-radius:2px; }
+
+/* WS Full-width Cards */
+.ws-full-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:16px; overflow:hidden; }
+.ws-full-card .wf-header { padding:16px 20px; border-bottom:1px solid #f5f5f5; display:flex; align-items:center; gap:10px; }
+.ws-full-card .wf-header .wf-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; }
+.ws-full-card .wf-header h3 { font-size:14px; font-weight:600; }
+.ws-full-card .wf-body { padding:20px; }
+
+/* Skills */
+.skill-cat { margin-bottom:12px; }
+.skill-cat:last-child { margin-bottom:0; }
+.skill-cat .sc-label { font-size:10px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.3px; margin-bottom:5px; display:flex; align-items:center; gap:5px; }
+.skill-cat .sc-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.chips { display:flex; flex-wrap:wrap; gap:5px; }
+.chip { display:inline-block; padding:3px 9px; border-radius:20px; font-size:10px; font-weight:500; line-height:1.6; border:1.5px solid rgba(79,124,255,.18); }
+
+/* Direction */
+.dir-primary { text-align:center; padding:8px 0 16px; }
+.dir-badge { display:inline-block; padding:6px 18px; border-radius:20px; font-size:15px; font-weight:700; color:#fff; margin-bottom:8px; }
+.conf-bar { height:6px; background:#f0f0f0; border-radius:3px; overflow:hidden; margin:8px 0 12px; }
+.conf-bar .fill { height:100%; border-radius:3px; transition:width .5s ease; }
+.conf-text { font-size:12px; color:var(--text3); }
+.rel-tags { margin-top:12px; border-top:1px solid #f5f5f5; padding-top:12px; }
+.rel-tags .rt-label { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:.3px; margin-bottom:6px; }
+.rel-tag { display:inline-block; padding:3px 9px; border-radius:12px; font-size:11px; margin:2px 3px; background:#f5f5f5; color:var(--text2); }
+
+/* Competencies */
+.comp-row { padding:10px 0; border-bottom:1px solid #f8f8f8; }
+.comp-row:last-child { border-bottom:none; }
+.comp-row .cr-name { font-size:13px; font-weight:600; margin-bottom:3px; }
+.comp-row .cr-evidence { font-size:10px; color:var(--text3); line-height:1.5; }
+.comp-badge { display:inline-block; font-size:9px; padding:1px 6px; border-radius:8px; margin-left:6px; font-weight:500; }
+.comp-badge.req { background:#fef2f2; color:#ef4444; border:1px solid #fecaca; }
+.comp-badge.pref { background:#fffbeb; color:#f59e0b; border:1px solid #fde68a; }
+
+/* Portrait Card */
+.portrait-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:28px; margin-bottom:24px; box-shadow:var(--shadow); }
+.portrait-card .pt-title { color:var(--text); }
+.portrait-card .pt-summary { color:var(--text2); }
+.portrait-card .pt-meta span { background:#F5F6FA; color:var(--text2); }
+.portrait-card .pt-meta { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+.portrait-card .pt-meta span { padding:3px 10px; border-radius:6px; font-size:11px; background:rgba(255,255,255,.15); }
+.portrait-card .pt-title { font-size:22px; font-weight:700; margin-bottom:8px; color:var(--text); letter-spacing:-.3px; }
+.portrait-card .pt-meta span { padding:3px 10px; border-radius:6px; font-size:11px; background:#F5F6FA; color:var(--text2); }
+.portrait-card .pt-summary { font-size:14px; opacity:.85; line-height:1.7; }
+
+/* AI Summary */
+.ai-summary { position:relative; }
+.ai-summary::before { content:'AI'; position:absolute; top:-8px; right:16px; background:var(--accent); color:#fff; font-size:9px; font-weight:700; padding:2px 8px; border-radius:10px; }
+.ai-summary .ais-text { font-size:14px; line-height:1.9; color:var(--text2); }
+.ai-summary .ais-text .highlight { background:#fef3c7; padding:1px 3px; border-radius:3px; font-weight:500; }
+
+/* Frequency Bars */
+.freq-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.freq-row .fr-label { width:100px; font-size:12px; color:var(--text2); text-align:right; flex-shrink:0; }
+.freq-row .fr-bar-wrap { flex:1; height:8px; background:#f0f0f0; border-radius:4px; overflow:hidden; }
+.freq-row .fr-bar-fill { height:100%; border-radius:4px; transition:width .5s ease; }
+.freq-row .fr-count { width:30px; font-size:11px; color:var(--text3); flex-shrink:0; }
+
+/* Learning Placeholder */
+.placeholder-card { text-align:center; padding:32px; color:var(--text3); }
+.placeholder-card .ph-icon { font-size:36px; margin-bottom:10px; }
+.placeholder-card .ph-label { font-size:13px; font-weight:500; }
+
+/* ====== Resume Match Module ====== */
+.resume-match-module {
+  background:var(--card);
+  border:1.5px solid var(--border);
+  border-radius:var(--radius);
+  padding:28px 32px;
+  margin-bottom:24px;
+  cursor:pointer;
+  transition:all .35s cubic-bezier(.4,0,.2,1);
+  position:relative;
+  overflow:hidden;
+  opacity:0;
+  transform:translateY(20px);
+  display:none;
+}
+.resume-match-module.visible {
+  opacity:1;
+  transform:translateY(0);
+  display:block;
+  transition:all .6s cubic-bezier(.4,0,.2,1);
+}
+.resume-match-module::before {
+  content:'';
+  position:absolute;
+  top:-60px; right:-60px;
+  width:200px; height:200px;
+  background:radial-gradient(circle, rgba(79,124,255,.05) 0%, transparent 70%);
+  border-radius:50%;
+  pointer-events:none;
+}
+.resume-match-module:hover {
+  border-color:var(--accent);
+  box-shadow:0 4px 20px rgba(79,124,255,.08);
+  transform:translateY(-2px);
+}
+.resume-match-module:hover .rmm-arrow {
+  transform:translateX(4px);
+}
+.rmm-inner {
+  display:flex; align-items:center; gap:24px;
+}
+.rmm-icon-wrap {
+  width:56px; height:56px;
+  border-radius:14px;
+  background:var(--accent-light);
+  display:flex; align-items:center; justify-content:center;
+  font-size:26px; flex-shrink:0;
+}
+.rmm-content { flex:1; }
+.rmm-title {
+  font-size:16px; font-weight:700;
+  color:var(--text); margin-bottom:4px;
+}
+.rmm-desc {
+  font-size:13px; color:var(--text2); line-height:1.5;
+}
+.rmm-highlight { color:var(--accent); font-weight:600; }
+.rmm-arrow {
+  font-size:22px; color:var(--accent);
+  transition:transform .25s; flex-shrink:0;
+}
+
+/* Bottom Action Bar */
+.action-bar { display:flex; justify-content:center; gap:12px; padding:20px 0 0; flex-wrap:wrap; }
+.btn-action { padding:8px 20px; border-radius:var(--radius-sm); font-size:13px; font-weight:500; cursor:pointer; border:1px solid var(--border); background:var(--card); color:var(--text2); transition:all .15s; font-family:var(--font); display:flex; align-items:center; gap:6px; }
+.btn-action:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+.btn-action.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+.btn-action.primary:hover { background:var(--accent-hover); }
+
+/* Toast */
+.toast { position:fixed; bottom:32px; left:50%; transform:translateX(-50%); background:var(--text); color:#fff; padding:10px 24px; border-radius:10px; font-size:13px; z-index:9999; opacity:0; transition:opacity .3s; pointer-events:none; box-shadow:0 8px 24px rgba(0,0,0,.15); }
+.toast.show { opacity:1; }
+
+/* Loading */
+@keyframes spin { to { transform:rotate(360deg); } }
+.spinner { width:16px; height:16px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; display:inline-block; }
+.spinner-dark { width:16px; height:16px; border:2px solid rgba(79,124,255,.18); border-top-color:var(--accent); border-radius:50%; animation:spin .6s linear infinite; display:inline-block; }
+
+/* Transition overlay */
+.transition-overlay { display:none; position:fixed; inset:0; background:rgba(250,251,252,.9); z-index:200; justify-content:center; align-items:center; flex-direction:column; gap:24px; }
+.transition-overlay.active { display:flex; }
+.transition-overlay .to-steps { display:flex; flex-direction:column; gap:10px; }
+.transition-overlay .to-step { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text3); transition:color .3s; }
+.transition-overlay .to-step.done { color:var(--success); }
+.transition-overlay .to-step.current { color:var(--accent); font-weight:600; }
+.transition-overlay .to-step .to-dot { width:8px; height:8px; border-radius:50%; background:currentColor; flex-shrink:0; }
+
+/* Responsive */
+@media (max-width:768px) {
+  .hero { padding:36px 0 24px; }
+  .hero h1 { font-size:24px; }
+  .hero .sub { font-size:14px; }
+  .features { grid-template-columns:1fr; }
+  .ws-grid { grid-template-columns:1fr; }
+  .header { padding:12px 16px; }
+  .main { padding:0 12px 60px; }
+  .input-body { padding:14px 16px; }
+  .input-body textarea { min-height:140px; font-size:13px; }
+  .input-footer { padding:10px 16px; }
+  .portrait-card { padding:20px; }
+  .portrait-card .pt-title { font-size:20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <a class="logo" href="#"><span class="icon">🤖</span>AI求职助手</a>
+  <nav>
+    <a href="compare.html">岗位对比</a>
+    <a href="招聘岗位整理.html">数据参考</a>
+  </nav>
+</header>
+
+<!-- ====== INPUT STATE ====== -->
+<div class="main" id="inputState">
+  <!-- Hero -->
+  <div class="hero">
+    <div class="badge">AI Workspace</div>
+    <h1>AI驱动的<span class="gradient">岗位分析助手</span></h1>
+    <p class="sub">粘贴 Boss 直聘岗位 JD 或上传截图，AI 自动提取技能关键词、分类岗位方向、分析核心能力，生成结构化分析报告。</p>
+  </div>
+
+  <!-- Input Panel -->
+  <div class="input-panel">
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-tab="paste">📋 粘贴 JD 文本</button>
+      <button class="mode-tab" data-tab="upload">📷 上传截图识别</button>
+    </div>
+
+    <!-- Tab: Paste -->
+    <div class="tab-content active" id="tabPaste">
+      <div class="input-body">
+        <textarea id="jdInput" placeholder="在此粘贴 Boss 直聘岗位 JD 文本...
+
+支持直接复制的招聘页面内容、OCR 提取的纯文本。
+AI 将自动清洗格式噪声并提取关键信息。"></textarea>
+      </div>
+    </div>
+
+    <!-- Tab: Upload -->
+    <div class="tab-content" id="tabUpload">
+      <div class="upload-body">
+        <div class="upload-zone" id="uploadZone">
+          <div class="uz-icon">🖼</div>
+          <div class="uz-title">点击上传或拖拽截图到此处</div>
+          <div class="uz-hint">支持 PNG / JPG / WebP，自动识别中文文本</div>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" style="display:none">
+      </div>
+      <div class="upload-preview" id="uploadPreview">
+        <img id="imgPreview" alt="Preview">
+        <div class="up-info">
+          <div class="up-status" id="ocrStatus"><span class="spinner-dark"></span> 识别中...</div>
+          <div class="up-progress"><div class="fill" id="ocrFill" style="width:0%"></div></div>
+        </div>
+        <button id="btnClearImage" style="border:none;background:none;cursor:pointer;font-size:18px;color:var(--text3);padding:4px;">✕</button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="input-footer">
+      <div class="example-chips">
+        <span style="font-size:11px;color:var(--text3);margin-right:2px;">示例：</span>
+        <button class="example-chip" data-demo="ai-product">AI产品实习生</button>
+        <button class="example-chip" data-demo="aigc-design">AIGC视频设计</button>
+        <button class="example-chip" data-demo="ai-engineer">AI算法实习生</button>
+      </div>
+      <button class="btn-submit" id="btnSubmit" disabled>
+        <span id="btnSubmitText">开始分析</span>
+        <span style="font-size:16px;">→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Feature Cards -->
+  <div class="features">
+    <div class="feature-card">
+      <div class="fc-icon" style="background:#eef2ff;color:var(--accent);">🏷</div>
+      <h3>技能标签提取</h3>
+      <p>13 类 AI 行业技能体系，300+ 关键词自动匹配</p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon" style="background:#fef3c7;color:#f59e0b;">🎯</div>
+      <h3>岗位方向分类</h3>
+      <p>AI 产品 / AIGC 设计 / 算法工程 / 内容运营 精准分类</p>
+    </div>
+    <div class="feature-card">
+      <div class="fc-icon" style="background:#ecfdf5;color:var(--success);">💡</div>
+      <h3>能力模型分析</h3>
+      <p>从 JD 原文提取核心能力，区分必需项与加分项</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== WORKSPACE STATE ====== -->
+<div class="main" style="display:none;" id="workspaceState">
+  <!-- Status steps -->
+  <div class="ws-steps" id="wsSteps"></div>
+
+  <!-- Portrait -->
+  <div id="portraitArea"></div>
+
+  <!-- 3-column grid: Skills | Direction | Competencies -->
+  <div class="ws-grid" id="wsGrid"></div>
+
+  <!-- Frequency -->
+  <div id="freqArea"></div>
+
+  <!-- AI Summary -->
+  <div id="summaryArea"></div>
+
+  <!-- Resume Match Module -->
+  <div id="resumeMatchModule" class="resume-match-module"></div>
+
+  <!-- Learning Path -->
+  <div id="learningArea"></div>
+
+  <!-- Action Bar -->
+  <div class="action-bar" id="actionBar"></div>
+</div>
+
+<!-- Transition overlay -->
+<div class="transition-overlay" id="transitionOverlay">
+  <div class="to-steps" id="toSteps"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Scripts -->
+<script src="../src/jd-parser/skill-taxonomy.js"></script>
+<script src="../src/jd-parser/jd-parser.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.min.js"></script>
+<script>
+(function () {
+// ====== Demo Data ======
+const DEMOS = {
+  'ai-product': `【AI创新产品实习生-米哈游】
+岗位职责：
+1. 协作AI产品应用探索，参与AI+游戏的产品设计与运营策略制定
+2. 对前沿AI能力及趋势保持敏锐洞察，调研AI领域前沿产品
+3. 理解游戏内容生产流程和用户需求，协助完成PRD撰写与产品原型设计
+4. 跨部门沟通协作，推动AI功能在游戏场景中落地
+
+任职要求：
+1. 对AI创新产品有强烈热情，熟悉ChatGPT、Claude、Midjourney等常见AI应用工具
+2. 具备良好的产品思维和用户研究能力
+3. 优秀的逻辑分析能力，善于从数据中发现问题
+4. 有较强的跨团队沟通协作能力和项目推进能力
+5. 游戏理解深刻，有丰富的游戏体验经历优先
+6. 本科及以上学历，25届及以后毕业
+
+工作地点：上海徐汇区漕河泾
+薪资：200-350元/天`,
+
+  'aigc-design': `【AIGC视频生成实习生】
+岗位职责：
+1. 使用Runway、Pika、可灵(Kling)等AI视频工具生成和编辑视频内容
+2. 利用Midjourney、Stable Diffusion生成视觉素材和概念图
+3. 负责短视频脚本撰写、拍摄及后期制作
+4. 用AE、Premiere、剪映进行视频后期处理
+
+任职要求：
+1. 熟练使用ComfyUI搭建AI生成工作流
+2. 有较强的创意策划能力和视觉审美能力
+3. 熟悉AI视频制作流程，有作品集优先
+4. 对AIGC行业有热情，关注前沿AI工具动态
+5. 有视频剪辑或内容创作经验者优先
+
+工作地点：北京朝阳区
+薪资：250-400元/天`,
+
+  'ai-engineer': `【大模型应用开发实习生】
+岗位职责：
+1. 参与大模型应用产品的研发，包括RAG系统、AI Agent等
+2. 使用LangChain/LlamaIndex等框架构建LLM应用
+3. 优化Prompt Engineering，提升模型输出质量
+4. 参与模型微调、评估和部署
+
+任职要求：
+1. 精通Python，熟悉PyTorch或TensorFlow
+2. 了解LangChain、向量数据库、RAG等技术栈
+3. 有Prompt Engineering实践经验
+4. 熟悉Transformer架构，了解主流大模型原理
+5. 具备良好的英语文献阅读能力
+6. 计算机相关专业，硕士优先
+
+工作地点：深圳南山区
+薪资：300-500元/天`
+};
+
+// ====== State ======
+const state = {
+  mode: 'paste',       // 'paste' | 'upload'
+  rawText: '',
+  result: null,
+  isAnalyzing: false,
+  ocrDone: false
+};
+
+// ====== Helpers ======
+function $(id) { return document.getElementById(id); }
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ====== Tab Switching ======
+function switchTab(mode) {
+  state.mode = mode;
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === mode));
+  $('tabPaste').classList.toggle('active', mode === 'paste');
+  $('tabUpload').classList.toggle('active', mode === 'upload');
+  updateSubmitButton();
+}
+
+// ====== Submit ======
+function updateSubmitButton() {
+  const hasText = $('jdInput').value.trim().length >= 10;
+  const hasOCR = state.ocrDone;
+  $('btnSubmit').disabled = state.mode === 'paste' ? !hasText : !hasOCR;
+}
+
+async function handleSubmit() {
+  if (state.isAnalyzing) return;
+  let text = '';
+
+  if (state.mode === 'paste') {
+    text = $('jdInput').value.trim();
+    if (!text || text.length < 10) { showToast('请先粘贴完整的岗位 JD'); return; }
+  } else {
+    text = $('jdInput').value.trim();
+    if (!text || text.length < 10) { showToast('请先上传截图并完成识别'); return; }
+  }
+
+  state.rawText = text;
+  state.isAnalyzing = true;
+
+  // Show transition
+  showTransition();
+  addTransitionStep('正在清洗文本噪声...', 'current');
+  await sleep(400);
+  addTransitionStep('正在清洗文本噪声...', 'done');
+  addTransitionStep('正在提取技能关键词...', 'current');
+  await sleep(300);
+
+  // Parse
+  const result = window.JDParser.parse(text);
+  state.result = result;
+
+  addTransitionStep('正在提取技能关键词...', 'done');
+  addTransitionStep('正在分析岗位方向...', 'current');
+  await sleep(300);
+  addTransitionStep('正在分析岗位方向...', 'done');
+  addTransitionStep('生成分析报告...', 'current');
+  await sleep(200);
+  addTransitionStep('生成分析报告...', 'done');
+
+  await sleep(300);
+  hideTransition();
+  showWorkspace(result);
+  state.isAnalyzing = false;
+}
+
+// ====== Transition ======
+function showTransition() {
+  const ov = $('transitionOverlay');
+  $('toSteps').innerHTML = '';
+  ov.classList.add('active');
+}
+
+function addTransitionStep(label, status) {
+  const container = $('toSteps');
+  // Check if step already exists
+  const existing = [...container.children].find(c => c.textContent.includes(label));
+  if (existing) {
+    existing.className = 'to-step ' + status;
+    existing.querySelector('.to-dot').textContent = status === 'done' ? '✓' : '●';
+    return;
+  }
+  const div = document.createElement('div');
+  div.className = 'to-step ' + status;
+  div.innerHTML = '<span class="to-dot">' + (status === 'done' ? '✓' : '●') + '</span>' + label;
+  container.appendChild(div);
+}
+
+function hideTransition() {
+  setTimeout(() => { $('transitionOverlay').classList.remove('active'); }, 400);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ====== Workspace Render ======
+function showWorkspace(result) {
+  const { skills, direction, competencies, meta, stats } = result;
+
+  // Hide input, show workspace
+  $('inputState').style.display = 'none';
+  $('workspaceState').style.display = 'block';
+
+  // Smooth scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Steps
+  renderWSSteps(stats);
+
+  // Portrait
+  renderPortrait(meta, direction);
+
+  // Grid: Skills, Direction, Competencies
+  renderGrid(skills, direction, competencies);
+
+  // Frequency
+  renderFrequency(skills);
+
+  // AI Summary
+  renderSummary(skills, direction, competencies, meta);
+
+  // Resume Match Module (prominent card, after AI summary)
+  renderResumeMatchModule(result);
+
+  // Learning
+  renderLearning();
+
+  // Action Bar
+  renderActionBar();
+}
+
+function renderWSSteps(stats) {
+  $('wsSteps').innerHTML = `
+    <span class="ws-step done">✓ 文字识别</span>
+    <span class="ws-step done">✓ 岗位解析</span>
+    <span class="ws-step done">✓ 技能提取 (${stats.totalSkills})</span>
+    <span class="ws-step done">✓ 分析完成 (${stats.parseTimeMs}ms)</span>`;
+}
+
+function renderPortrait(meta, direction) {
+  const d = direction.primary || {};
+  const title = meta.title || '未识别岗位名称';
+  const company = meta.company || '';
+  const location = meta.location || '';
+  const salary = meta.salary || '';
+  const dirLabel = d.label || '综合';
+
+  let summary = '';
+  if (dirLabel) summary += `这是一份 <b>${dirLabel}</b> 方向的岗位`;
+  if (company) summary += `，来自 <b>${company}</b>`;
+  if (location) summary += `，工作地点 <b>${location}</b>`;
+  if (salary) summary += `，薪资参考 <b>${salary}</b>`;
+  summary += '。';
+
+  let metaHTML = '';
+  if (company) metaHTML += `<span>🏢 ${company}</span>`;
+  if (location) metaHTML += `<span>📍 ${location}</span>`;
+  if (salary) metaHTML += `<span>💰 ${salary}</span>`;
+  metaHTML += `<span style="background:var(--accent-light);color:var(--accent);">🎯 ${dirLabel}</span>`;
+
+  $('portraitArea').innerHTML = `
+    <div class="portrait-card">
+      <div class="pt-meta">${metaHTML}</div>
+      <div class="pt-title">${title}</div>
+      <div class="pt-summary">${summary}</div>
+    </div>`;
+}
+
+function renderResumeMatchModule(result) {
+  const dirLabel = (result.direction && result.direction.primary) ? result.direction.primary.label : '该岗位';
+  const totalSkills = Object.values(result.skills || {}).reduce((s, c) => s + c.keywords.length, 0);
+
+  const container = $('resumeMatchModule');
+  container.innerHTML = `
+    <div class="rmm-inner">
+      <div class="rmm-icon-wrap">🔍</div>
+      <div class="rmm-content">
+        <div class="rmm-title">简历匹配</div>
+        <div class="rmm-desc">
+          基于 <span class="rmm-highlight">${dirLabel}</span> 方向 ·
+          <span class="rmm-highlight">${totalSkills}</span> 项技能要求，AI 深度分析简历匹配度、能力差距与优化建议
+        </div>
+      </div>
+      <span class="rmm-arrow">→</span>
+    </div>`;
+
+  container.style.display = 'block';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      container.classList.add('visible');
+    });
+  });
+
+  container.onclick = () => {
+    localStorage.setItem('ai_jd_analysis', JSON.stringify(result));
+    window.location.href = 'resume-match.html';
+  };
+}
+
+function renderGrid(skills, direction, competencies) {
+  const sk = skills || {};
+  const catIds = Object.keys(sk);
+
+  // Skills card
+  let skillsHTML = catIds.length === 0
+    ? '<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px;">未匹配到技能关键词</div>'
+    : catIds.map(catId => {
+        const cat = sk[catId];
+        return `<div class="skill-cat">
+          <div class="sc-label"><span class="sc-dot" style="background:${cat.color}"></span>${cat.label}</div>
+          <div class="chips">${cat.keywords.map(k => `<span class="chip" style="background:${cat.color}10;color:${cat.color};">${k}</span>`).join('')}</div>
+        </div>`;
+      }).join('');
+
+  // Direction card
+  const d = direction || {};
+  const p = d.primary || {};
+  const dirColor = p.color || 'var(--accent)';
+  const confPct = Math.round((p.confidence || 0) * 100);
+  let dirHTML = !p.label
+    ? '<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px;">未能判定岗位方向</div>'
+    : `<div class="dir-primary">
+        <div class="dir-badge" style="background:${dirColor}">${p.icon || ''} ${p.label}</div>
+        <div class="conf-bar"><div class="fill" style="width:${confPct}%;background:${dirColor}"></div></div>
+        <div class="conf-text">置信度 ${confPct}%</div>
+      </div>`;
+  if (d.related && d.related.length > 0) {
+    dirHTML += `<div class="rel-tags"><div class="rt-label">关联方向</div>${d.related.map(r => `<span class="rel-tag">${r.icon} ${r.label}</span>`).join('')}</div>`;
+  }
+
+  // Competencies card
+  const comps = competencies || [];
+  let compHTML = comps.length === 0
+    ? '<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px;">未提取到核心能力</div>'
+    : comps.map(c => `<div class="comp-row">
+        <div class="cr-name">${c.name}<span class="comp-badge ${c.importance === 'required' ? 'req' : 'pref'}">${c.importance === 'required' ? '必须' : '加分'}</span></div>
+        <div class="cr-evidence">📎 ${c.evidence || ''}</div>
+      </div>`).join('');
+
+  $('wsGrid').innerHTML = `
+    <div class="ws-card">
+      <div class="wsc-header"><div class="wsc-icon" style="background:#eef2ff;color:var(--accent);">🏷</div><h3>技能标签系统</h3></div>
+      <div class="wsc-body">${skillsHTML}</div>
+    </div>
+    <div class="ws-card">
+      <div class="wsc-header"><div class="wsc-icon" style="background:#fef3c7;color:var(--warning);">🎯</div><h3>岗位方向分类</h3></div>
+      <div class="wsc-body">${dirHTML}</div>
+    </div>
+    <div class="ws-card">
+      <div class="wsc-header"><div class="wsc-icon" style="background:#ecfdf5;color:var(--success);">💡</div><h3>能力模型分析</h3></div>
+      <div class="wsc-body">${compHTML}</div>
+    </div>`;
+}
+
+function renderFrequency(skills) {
+  const sk = skills || {};
+  // Collect all skills with their categories
+  const allSkills = [];
+  for (const [catId, cat] of Object.entries(sk)) {
+    for (const kw of cat.keywords) {
+      allSkills.push({ keyword: kw, category: cat.label, color: cat.color });
+    }
+  }
+
+  if (allSkills.length === 0) {
+    $('freqArea').innerHTML = '';
+    return;
+  }
+
+  // Take top 8, sort by "importance" (just display what we have grouped)
+  const top = allSkills.slice(0, 8);
+  const maxCount = allSkills.length;
+
+  const rows = top.map(s => `
+    <div class="freq-row">
+      <span class="fr-label">${s.keyword}</span>
+      <div class="fr-bar-wrap"><div class="fr-bar-fill" style="width:${Math.max(15, 100 - (allSkills.indexOf(s) * 5))}%;background:${s.color}"></div></div>
+      <span class="fr-count" style="color:${s.color};">${s.category}</span>
+    </div>`).join('');
+
+  $('freqArea').innerHTML = `
+    <div class="ws-full-card">
+      <div class="wf-header"><div class="wf-icon" style="background:#eef2ff;color:var(--accent);">📊</div><h3>高频技能分析</h3></div>
+      <div class="wf-body">${rows}</div>
+    </div>`;
+}
+
+function renderSummary(skills, direction, competencies, meta) {
+  const sk = skills || {};
+  const d = direction || {};
+  const p = d.primary || {};
+  const comps = competencies || [];
+
+  const totalSkills = Object.values(sk).reduce((s, c) => s + c.keywords.length, 0);
+  const catNames = Object.values(sk).map(c => c.label);
+  const requiredComps = comps.filter(c => c.importance === 'required').map(c => c.name).slice(0, 3);
+  const preferredComps = comps.filter(c => c.importance === 'preferred').map(c => c.name).slice(0, 3);
+
+  let summary = '';
+  if (p.label) summary += `<span class="highlight">${p.label}</span> 方向，`;
+  if (totalSkills > 0) summary += `共提取 <b>${totalSkills}</b> 个技能关键词，`;
+  if (catNames.length > 0) summary += `覆盖 <b>${catNames.slice(0, 3).join('、')}</b>${catNames.length > 3 ? '等' + catNames.length + '个类别' : ''}。`;
+  if (requiredComps.length > 0) summary += `核心要求是 <b>${requiredComps.join('、')}</b>。`;
+  if (preferredComps.length > 0) summary += `加分项包括 ${preferredComps.join('、')}。`;
+
+  $('summaryArea').innerHTML = `
+    <div class="ws-full-card ai-summary">
+      <div class="wf-header"><div class="wf-icon" style="background:var(--accent);color:#fff;">✨</div><h3>AI 总结</h3></div>
+      <div class="wf-body"><p class="ais-text">${summary}</p></div>
+    </div>`;
+}
+
+function renderLearning() {
+  $('learningArea').innerHTML = `
+    <div class="ws-full-card" style="cursor:pointer;" id="learningCard">
+      <div class="wf-header"><div class="wf-icon" style="background:var(--accent);color:#fff;">📚</div><h3>AI学习路线</h3></div>
+      <div class="wf-body">
+        <div class="placeholder-card" style="padding:24px;">
+          <div class="ph-icon">🧠</div>
+          <div class="ph-label">生成个性化 AI 成长路线图</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:6px;">基于岗位要求与能力差距，AI 生成分阶段学习计划 →</div>
+        </div>
+      </div>
+    </div>`;
+  $('learningCard').addEventListener('click', () => {
+    localStorage.setItem('ai_jd_analysis', JSON.stringify(state.result));
+    window.location.href = 'learning-path.html';
+  });
+}
+
+function renderActionBar() {
+  $('actionBar').innerHTML = `
+    <button class="btn-action" id="btnCopyJSON">📋 复制 JSON</button>
+    <button class="btn-action" id="btnDownloadJSON">💾 导出报告</button>
+    <button class="btn-action primary" id="btnResumeMatch">🔍 简历匹配</button>
+    <button class="btn-action" id="btnHRInterview">🎯 AI模拟面试</button>
+    <button class="btn-action" id="btnNewAnalysis">🔄 开始新分析</button>`;
+
+  $('btnCopyJSON').addEventListener('click', () => {
+    if (!state.result) return;
+    navigator.clipboard.writeText(JSON.stringify(state.result, null, 2)).then(
+      () => showToast('JSON 已复制到剪贴板'),
+      () => showToast('复制失败')
+    );
+  });
+  $('btnDownloadJSON').addEventListener('click', () => {
+    if (!state.result) return;
+    const blob = new Blob([JSON.stringify(state.result, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'ai-job-analysis.json'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('报告已下载');
+  });
+  $('btnResumeMatch').addEventListener('click', () => {
+    if (!state.result) return;
+    localStorage.setItem('ai_jd_analysis', JSON.stringify(state.result));
+    window.location.href = 'resume-match.html';
+  });
+  $('btnHRInterview').addEventListener('click', () => {
+    if (!state.result) return;
+    localStorage.setItem('ai_jd_analysis', JSON.stringify(state.result));
+    window.location.href = 'hr-interview.html';
+  });
+  $('btnNewAnalysis').addEventListener('click', resetToInput);
+}
+
+function resetToInput() {
+  state.result = null;
+  state.rawText = '';
+  state.ocrDone = false;
+  $('inputState').style.display = '';
+  $('workspaceState').style.display = 'none';
+  $('jdInput').value = '';
+  const rmm = $('resumeMatchModule');
+  rmm.style.display = 'none';
+  rmm.classList.remove('visible');
+  rmm.innerHTML = '';
+  rmm.onclick = null;
+  updateSubmitButton();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ====== OCR ======
+let _ocrWorker = null;
+
+async function getOCRWorker() {
+  if (_ocrWorker) return _ocrWorker;
+  showToast('首次加载中文 OCR 引擎（约 10MB）...');
+  _ocrWorker = await Tesseract.createWorker('chi_sim');
+  return _ocrWorker;
+}
+
+function updateOCRUI(st) {
+  const preview = $('uploadPreview');
+  const status = $('ocrStatus');
+  const fill = $('ocrFill');
+  if (st === 'processing') {
+    preview.classList.add('show');
+    status.innerHTML = '<span class="spinner-dark"></span> 识别中...';
+    status.className = 'up-status';
+    fill.style.width = '30%';
+  } else if (st === 'done') {
+    preview.classList.add('show');
+    status.innerHTML = '✓ 识别完成';
+    status.className = 'up-status done';
+    fill.style.width = '100%';
+  } else {
+    preview.classList.remove('show');
+    fill.style.width = '0%';
+    state.ocrDone = false;
+  }
+}
+
+async function handleImageFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => { $('imgPreview').src = e.target.result; };
+  reader.readAsDataURL(file);
+
+  updateOCRUI('processing');
+
+  try {
+    const worker = await getOCRWorker();
+    const { data: { text } } = await worker.recognize(file);
+    const cleaned = text.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').split('\n').map(l => l.trim()).join('\n').trim();
+
+    if (!cleaned) {
+      updateOCRUI('idle');
+      showToast('未识别到文字，请确认图片包含中文');
+      return;
+    }
+
+    $('jdInput').value = cleaned;
+    state.ocrDone = true;
+    updateOCRUI('done');
+    updateSubmitButton();
+    showToast('识别完成！已提取 ' + cleaned.length + ' 字');
+  } catch (err) {
+    console.error('OCR error:', err);
+    updateOCRUI('idle');
+    showToast('识别失败，请重试');
+  }
+}
+
+// ====== Event Binding ======
+function bindEvents() {
+  // Mode tabs
+  document.querySelectorAll('.mode-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  });
+
+  // Example chips
+  document.querySelectorAll('.example-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const demoKey = chip.dataset.demo;
+      const text = DEMOS[demoKey];
+      if (text) {
+        switchTab('paste');
+        $('jdInput').value = text;
+        updateSubmitButton();
+        showToast('已加载示例：' + chip.textContent);
+      }
+    });
+  });
+
+  // Submit
+  $('btnSubmit').addEventListener('click', handleSubmit);
+
+  // Textarea input
+  $('jdInput').addEventListener('input', updateSubmitButton);
+
+  // Ctrl+Enter to submit
+  $('jdInput').addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); handleSubmit(); }
+  });
+
+  // Upload zone
+  $('uploadZone').addEventListener('click', () => { $('fileInput').click(); });
+  $('fileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) handleImageFile(file);
+  });
+
+  // Drag & drop
+  const zone = $('uploadZone');
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => { zone.classList.remove('drag-over'); });
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleImageFile(file);
+  });
+
+  // Clear image
+  $('btnClearImage').addEventListener('click', () => {
+    updateOCRUI('idle');
+    $('fileInput').value = '';
+    $('jdInput').value = '';
+    state.ocrDone = false;
+    updateSubmitButton();
+  });
+}
+
+// ====== Init ======
+function init() {
+  updateSubmitButton();
+  bindEvents();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>

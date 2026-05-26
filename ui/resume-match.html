@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>简历匹配 — AI求职助手</title>
+<style>
+/* ====== Design Tokens ====== */
+:root {
+  --bg: #fafbfc;
+  --card: #fff;
+  --text: #1a1a2e;
+  --text2: #5a5f6e;
+  --text3: #9499a5;
+  --accent: #4F7CFF;
+  --accent-light: #EEF3FF;
+  --accent-glow: rgba(79,124,255,.12);
+  --success: #19B37D;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --border: #e8eaef;
+  --radius: 16px;
+  --radius-sm: 12px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:var(--font); background:var(--bg); color:var(--text);
+  min-height:100vh; line-height:1.6; overflow-x:hidden;
+}
+
+/* ====== Aurora Background ====== */
+.aurora-bg {
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  overflow:hidden; opacity:.3; transition:opacity 2s;
+}
+.aurora-orb {
+  position:absolute; border-radius:50%;
+  filter:blur(160px);
+}
+.orb-a {
+  width:450px; height:450px; background:#4F7CFF;
+  top:-15%; left:-10%;
+  animation:aurora-a 45s ease-in-out infinite;
+}
+.orb-b {
+  width:400px; height:400px; background:#6B8AFF;
+  top:50%; right:-12%;
+  animation:aurora-b 50s ease-in-out infinite;
+}
+.orb-c {
+  width:380px; height:380px; background:#db2777;
+  bottom:-18%; left:20%;
+  animation:aurora-c 40s ease-in-out infinite;
+}
+.orb-d {
+  width:350px; height:350px; background:#3b82f6;
+  top:10%; left:40%;
+  animation:aurora-d 48s ease-in-out infinite;
+}
+@keyframes aurora-a {
+  0%,100% { transform:translate(0,0) scale(1); }
+  25% { transform:translate(40px,-25px) scale(1.04); }
+  50% { transform:translate(-15px,20px) scale(.97); }
+  75% { transform:translate(30px,-10px) scale(1.02); }
+}
+@keyframes aurora-b {
+  0%,100% { transform:translate(0,0) scale(1); }
+  20% { transform:translate(-30px,15px) scale(1.03); }
+  50% { transform:translate(20px,-25px) scale(.96); }
+  80% { transform:translate(-10px,10px) scale(1.02); }
+}
+@keyframes aurora-c {
+  0%,100% { transform:translate(0,0) scale(1); }
+  30% { transform:translate(-25px,-20px) scale(1.04); }
+  60% { transform:translate(20px,15px) scale(.97); }
+  90% { transform:translate(-15px,-5px) scale(1.02); }
+}
+@keyframes aurora-d {
+  0%,100% { transform:translate(0,0) scale(1); }
+  33% { transform:translate(35px,20px) scale(1.03); }
+  66% { transform:translate(-25px,-15px) scale(.98); }
+}
+.aurora-bg.analyzing .orb-a { animation-duration:15s; }
+.aurora-bg.analyzing .orb-b { animation-duration:18s; }
+.aurora-bg.analyzing .orb-c { animation-duration:14s; }
+.aurora-bg.analyzing .orb-d { animation-duration:17s; }
+
+/* ====== Header ====== */
+.header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px 24px; position:sticky; top:0; z-index:100;
+  background:rgba(255,255,255,.7); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.header .back {
+  padding:6px 14px; border-radius:8px; font-size:12px;
+  cursor:pointer; border:1px solid var(--border);
+  background:var(--card); color:var(--text2);
+  font-family:var(--font); transition:all .15s;
+  text-decoration:none; display:flex; align-items:center; gap:6px;
+}
+.header .back:hover { border-color:var(--accent); color:var(--accent); }
+.header .hd-title { font-size:15px; font-weight:700; }
+.header .hd-sub { font-size:11px; color:var(--text3); }
+
+/* ====== Workspace Layout ====== */
+.workspace {
+  display:flex; min-height:calc(100vh - 55px);
+  max-width:100%; margin:0 auto; position:relative; z-index:1;
+}
+
+/* ====== Left Panel (340px) ====== */
+.left-panel {
+  width:340px; flex-shrink:0; padding:24px 20px;
+  overflow-y:auto; background:rgba(255,255,255,.45);
+  backdrop-filter:blur(8px); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; gap:16px;
+  position:sticky; top:55px; height:calc(100vh - 55px);
+}
+.left-panel::-webkit-scrollbar { width:4px; }
+.left-panel::-webkit-scrollbar-thumb { background:#e0e0e0; border-radius:2px; }
+
+/* JD Card */
+.jd-card {
+  background:rgba(255,255,255,.7); border:1px solid var(--border);
+  border-radius:14px; padding:18px;
+}
+.jd-card-label {
+  font-size:10px; text-transform:uppercase; letter-spacing:.5px;
+  color:var(--accent); font-weight:700; margin-bottom:8px;
+  display:flex; align-items:center; gap:6px;
+}
+.jd-card-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); }
+.jd-card-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.jd-card-meta { font-size:11px; color:var(--text3); }
+
+/* Mode Tabs */
+.mode-tabs-minimal {
+  display:flex; gap:4px; background:rgba(0,0,0,.04);
+  border-radius:10px; padding:4px;
+}
+.mtab {
+  flex:1; padding:9px 0; text-align:center; font-size:12px;
+  font-weight:500; border-radius:8px; cursor:pointer;
+  border:none; background:none; color:var(--text3);
+  font-family:var(--font); transition:all .15s;
+}
+.mtab.active { background:var(--card); color:var(--accent); box-shadow:0 1px 3px rgba(0,0,0,.06); }
+.mtab:hover:not(.active) { color:var(--text2); }
+
+/* Upload / Paste Card */
+.input-card {
+  background:rgba(255,255,255,.7); border:1px solid var(--border);
+  border-radius:14px; overflow:hidden; flex:1;
+  display:flex; flex-direction:column;
+}
+.upload-zone {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:40px 20px; text-align:center;
+  cursor:pointer; transition:all .2s;
+}
+.upload-zone:hover { background:rgba(79,124,255,.04); }
+.upload-zone .uz-icon-lg { font-size:40px; margin-bottom:12px; }
+.upload-zone .uz-label { font-size:14px; font-weight:600; color:var(--text); margin-bottom:4px; }
+.upload-zone .uz-note { font-size:11px; color:var(--text3); }
+.paste-area {
+  display:none; flex:1; flex-direction:column;
+}
+.paste-area textarea {
+  flex:1; width:100%; min-height:280px; border:none;
+  resize:vertical; font-size:13px; font-family:var(--font);
+  line-height:1.7; outline:none; color:var(--text);
+  padding:16px; background:transparent;
+}
+.paste-area textarea::placeholder { color:var(--text3); }
+.upload-status-minimal {
+  display:none; padding:12px 16px; border-top:1px solid var(--border);
+  background:#ecfdf5; font-size:12px; color:var(--success);
+  align-items:center; gap:8px;
+}
+.upload-status-minimal.show { display:flex; }
+
+/* Match Button */
+.btn-match-lg {
+  width:100%; padding:15px; border-radius:12px;
+  font-size:15px; font-weight:700; cursor:pointer;
+  border:none; background:var(--accent); color:#fff;
+  font-family:var(--font); display:flex;
+  align-items:center; justify-content:center; gap:10px;
+  transition:all .2s; box-shadow:0 2px 8px rgba(79,124,255,.15);
+}
+.btn-match-lg:hover:not(:disabled) {
+  background:#3B6AE0; box-shadow:0 6px 24px rgba(79,124,255,.25);
+  transform:translateY(-1px);
+}
+.btn-match-lg:disabled { opacity:.4; cursor:not-allowed; box-shadow:none; transform:none; }
+.btn-match-arrow { font-size:18px; transition:transform .2s; }
+.btn-match-lg:hover:not(:disabled) .btn-match-arrow { transform:translateX(3px); }
+
+/* ====== Right Panel: AI Workspace ====== */
+.right-panel {
+  flex:1; padding:32px 40px;
+  overflow-y:auto; overflow-x:hidden;
+}
+.right-panel::-webkit-scrollbar { width:4px; }
+.right-panel::-webkit-scrollbar-thumb { background:#e0e0e0; border-radius:2px; }
+
+/* Empty State */
+.right-empty-state {
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  min-height:500px; text-align:center;
+}
+.empty-icon { font-size:72px; margin-bottom:20px; opacity:.5; }
+.empty-title { font-size:17px; font-weight:600; color:var(--text); margin-bottom:8px; }
+.empty-desc { font-size:14px; color:var(--text3); max-width:360px; line-height:1.7; }
+
+/* Process Line */
+.process-line {
+  display:none; align-items:center; gap:14px;
+  padding:20px 0; margin-bottom:8px;
+}
+.pl-spinner {
+  width:22px; height:22px;
+  border:2.5px solid rgba(79,124,255,.15);
+  border-top-color:var(--accent); border-radius:50%;
+  animation:spin .8s linear infinite; flex-shrink:0;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.pl-text { font-size:15px; font-weight:500; color:var(--accent); }
+
+/* ====== Result Modules ====== */
+.result-module {
+  background:rgba(255,255,255,.78);
+  backdrop-filter:blur(10px);
+  border-radius:var(--radius);
+  padding:28px;
+  margin-bottom:24px;
+  border:1px solid rgba(232,234,239,.5);
+  box-shadow:0 1px 3px rgba(0,0,0,.03);
+  opacity:0; transform:translateY(16px);
+}
+.result-module.visible {
+  opacity:1; transform:translateY(0);
+  transition:all .55s cubic-bezier(.4,0,.2,1);
+}
+.result-module .rm-header {
+  display:flex; align-items:center; gap:12px;
+  margin-bottom:18px;
+}
+.result-module .rm-header .rm-icon {
+  width:34px; height:34px; border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; flex-shrink:0;
+}
+.result-module .rm-header h4 {
+  font-size:15px; font-weight:600; color:var(--text);
+}
+.result-module .rm-body {
+  font-size:14px; color:var(--text2); line-height:1.7;
+}
+
+/* Score Module */
+.score-hero {
+  display:flex; align-items:center; gap:24px; padding:4px 0;
+}
+.score-ring-wrap { flex-shrink:0; }
+.score-ring {
+  width:100px; height:100px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:34px; font-weight:800; position:relative;
+}
+.score-ring::before {
+  content:''; position:absolute; inset:-5px; border-radius:50%; padding:5px;
+  background:conic-gradient(var(--ring-color) var(--pct), #f0f0f0 0);
+  -webkit-mask:radial-gradient(transparent 57%, #000 58%);
+  mask:radial-gradient(transparent 57%, #000 58%);
+}
+.score-info { flex:1; }
+.score-verdict { font-size:17px; font-weight:700; margin-bottom:4px; }
+.score-detail { font-size:13px; color:var(--text3); line-height:1.6; }
+
+/* Strengths / Gaps */
+.strength-item, .gap-item {
+  padding:11px 0; border-bottom:1px solid #f5f5f5;
+  display:flex; align-items:flex-start; gap:10px;
+  font-size:13px; line-height:1.5;
+}
+.strength-item:last-child, .gap-item:last-child { border-bottom:none; }
+.si-icon { color:var(--success); font-weight:700; flex-shrink:0; margin-top:2px; }
+.gi-icon { color:var(--danger); font-weight:700; flex-shrink:0; margin-top:2px; }
+.tag-mini {
+  display:inline-block; padding:2px 8px; border-radius:10px;
+  font-size:10px; font-weight:500; margin-left:6px; flex-shrink:0;
+}
+
+/* AI Reasoning */
+.reasoning-text { font-size:14px; line-height:2; color:var(--text2); }
+
+/* Suggestions */
+.sugg-section { margin-bottom:16px; }
+.sugg-section:last-child { margin-bottom:0; }
+.sugg-section .ss-label {
+  font-size:11px; font-weight:700; color:var(--accent);
+  text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;
+}
+.sugg-section .ss-item {
+  font-size:13px; color:var(--text2); padding:5px 0;
+  display:flex; gap:8px; line-height:1.6;
+}
+.sugg-section .ss-item::before { content:'›'; color:var(--accent); font-weight:700; flex-shrink:0; }
+
+/* Next Steps */
+.next-step {
+  display:flex; align-items:center; gap:12px;
+  padding:13px 16px; margin-bottom:8px;
+  border-radius:12px; border:1px solid var(--border);
+  cursor:pointer; transition:all .15s; font-size:13px;
+}
+.next-step:last-child { margin-bottom:0; }
+.next-step:hover { border-color:var(--accent); background:rgba(79,124,255,.04); }
+.next-step .ns-icon { font-size:20px; flex-shrink:0; }
+.next-step .ns-info { flex:1; }
+.next-step .ns-label { font-weight:600; color:var(--text); margin-bottom:2px; }
+.next-step .ns-desc { font-size:11px; color:var(--text3); }
+
+/* Toast */
+.toast {
+  position:fixed; bottom:32px; left:50%; transform:translateX(-50%);
+  background:var(--text); color:#fff; padding:10px 24px; border-radius:10px;
+  font-size:13px; z-index:9999; opacity:0; transition:opacity .3s;
+  pointer-events:none; box-shadow:0 8px 24px rgba(0,0,0,.15);
+}
+.toast.show { opacity:1; }
+
+/* ====== Responsive ====== */
+@media (max-width:900px) {
+  .workspace { flex-direction:column; }
+  .left-panel {
+    width:100%; flex-shrink:1; position:static;
+    height:auto; border-right:none; border-bottom:1px solid var(--border);
+  }
+  .right-panel { padding:20px 16px; }
+}
+@media (max-width:640px) {
+  .header { padding:10px 14px; }
+  .score-hero { flex-direction:column; text-align:center; }
+  .score-info { text-align:center; }
+}
+</style>
+</head>
+<body>
+
+<!-- Aurora Background -->
+<div class="aurora-bg" id="auroraBg">
+  <div class="aurora-orb orb-a"></div>
+  <div class="aurora-orb orb-b"></div>
+  <div class="aurora-orb orb-c"></div>
+  <div class="aurora-orb orb-d"></div>
+</div>
+
+<!-- Header -->
+<header class="header">
+  <a class="back" href="index.html">← 返回分析</a>
+  <div>
+    <div class="hd-title">简历匹配</div>
+    <div class="hd-sub" id="jdRef">加载中...</div>
+  </div>
+  <div style="width:80px;"></div>
+</header>
+
+<!-- Workspace -->
+<div class="workspace">
+  <!-- ====== Left Panel ====== -->
+  <div class="left-panel" id="leftPanel">
+    <!-- JD Context -->
+    <div class="jd-card">
+      <div class="jd-card-label"><span class="jd-card-dot"></span>当前岗位</div>
+      <div class="jd-card-title" id="jdTitle">—</div>
+      <div class="jd-card-meta" id="jdMeta"></div>
+    </div>
+
+    <!-- Mode Tabs -->
+    <div class="mode-tabs-minimal">
+      <button class="mtab active" data-mode="pdf">📄 上传PDF</button>
+      <button class="mtab" data-mode="text">📝 粘贴文本</button>
+    </div>
+
+    <!-- Input Area -->
+    <div class="input-card" id="inputCard">
+      <div class="upload-zone" id="uploadZone">
+        <div class="uz-icon-lg">📤</div>
+        <div class="uz-label">上传简历文件</div>
+        <div class="uz-note">支持 PDF 格式，自动提取文本</div>
+      </div>
+      <input type="file" id="fileInput" accept=".pdf" style="display:none">
+      <div class="paste-area" id="pasteArea">
+        <textarea id="resumeText" placeholder="在此粘贴简历文本...
+
+支持格式：
+• 完整简历内容
+• 包含技能、项目经历、教育背景等
+• 纯文本格式即可"></textarea>
+      </div>
+      <div class="upload-status-minimal" id="uploadStatus">
+        <span>✓</span> <span id="uploadStatusText"></span>
+      </div>
+    </div>
+
+    <!-- Match Button -->
+    <button class="btn-match-lg" id="btnMatch" disabled>
+      <span id="btnMatchLabel">开始匹配</span>
+      <span class="btn-match-arrow">→</span>
+    </button>
+  </div>
+
+  <!-- ====== Right Panel: AI Workspace ====== -->
+  <div class="right-panel" id="rightPanel">
+    <div class="right-empty-state" id="rightEmpty">
+      <div class="empty-icon">🧠</div>
+      <div class="empty-title">AI 分析工作区</div>
+      <div class="empty-desc">上传简历后点击「开始匹配」，AI 将深度分析岗位匹配度、能力差距与优化方向</div>
+    </div>
+    <div class="process-line" id="processLine">
+      <span class="pl-spinner"></span>
+      <span class="pl-text" id="processText">正在解析简历...</span>
+    </div>
+    <div id="resultsArea"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Scripts -->
+<script src="../src/jd-parser/skill-taxonomy.js"></script>
+<script src="../src/resume-matcher/resume-parser.js"></script>
+<script src="../src/resume-matcher/matcher.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+(function () {
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ====== State ======
+const state = {
+  mode: 'pdf',
+  jdAnalysis: null,
+  resumeText: '',
+  pdfFile: null,
+  isAnalyzing: false,
+  result: null
+};
+
+// ====== Helpers ======
+function $(id) { return document.getElementById(id); }
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ====== Load JD Context ======
+function loadJDContext() {
+  try {
+    const raw = localStorage.getItem('ai_jd_analysis');
+    if (raw) {
+      state.jdAnalysis = JSON.parse(raw);
+    } else {
+      loadDemoJD();
+    }
+  } catch (e) {
+    loadDemoJD();
+  }
+  updateJDDisplay();
+}
+
+function loadDemoJD() {
+  state.jdAnalysis = {
+    skills: {
+      'ai-apps': { label: 'AI应用工具', color: '#eb2f96', keywords: ['ChatGPT', 'Claude', 'Midjourney'] },
+      'ai-video': { label: 'AI视频生成', color: '#fa541c', keywords: ['Runway', 'Pika', 'Kling'] },
+      'design-tools': { label: '设计工具', color: '#13c2c2', keywords: ['AE', 'Premiere', '剪映'] },
+      'product-skills': { label: '产品能力', color: '#0f3460', keywords: ['PRD撰写', '用户研究', '产品设计'] },
+      'soft-skills': { label: '软技能', color: '#1a1a2e', keywords: ['跨部门沟通', '创意策划', '逻辑思维', '项目推进'] },
+      'domain-knowledge': { label: '领域知识', color: '#722ed1', keywords: ['游戏理解'] }
+    },
+    direction: { primary: { id: 'aigc-design', label: 'AIGC/视频/设计', icon: '🎨', color: '#eb2f96', confidence: 0.9 } },
+    competencies: [
+      { name: 'AI视频工具使用', evidence: '使用Runway、Pika、可灵等工具', importance: 'required' },
+      { name: '创意策划能力', evidence: '有较强的创意策划能力和视觉审美', importance: 'required' },
+      { name: 'ComfyUI工作流', evidence: '熟练使用ComfyUI搭建AI工作流', importance: 'required' },
+      { name: '视频剪辑经验', evidence: '有视频剪辑或内容创作经验', importance: 'preferred' }
+    ],
+    meta: { title: 'AIGC视频生成实习生', company: '某头部游戏公司', location: '北京', salary: '250-400元/天' }
+  };
+}
+
+function updateJDDisplay() {
+  if (!state.jdAnalysis) return;
+  const meta = state.jdAnalysis.meta || {};
+  const dir = (state.jdAnalysis.direction && state.jdAnalysis.direction.primary)
+    ? state.jdAnalysis.direction.primary.label : '';
+  $('jdTitle').textContent = meta.title || '未知岗位';
+  $('jdMeta').textContent = [dir, meta.company, meta.location].filter(Boolean).join(' · ');
+  $('jdRef').textContent = 'JD: ' + (meta.title || '已加载');
+}
+
+// ====== Mode Switching ======
+document.querySelectorAll('.mtab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    state.mode = tab.dataset.mode;
+    document.querySelectorAll('.mtab').forEach(t => t.classList.toggle('active', t === tab));
+    $('uploadZone').style.display = state.mode === 'pdf' ? '' : 'none';
+    $('pasteArea').style.display = state.mode === 'text' ? 'flex' : 'none';
+    updateMatchButton();
+  });
+});
+
+// ====== PDF Upload ======
+$('uploadZone').addEventListener('click', () => $('fileInput').click());
+$('fileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  state.pdfFile = file;
+
+  $('uploadStatus').classList.add('show');
+  $('uploadStatusText').textContent = '正在解析 PDF...';
+
+  try {
+    const arrayBuf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
+    const pages = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const text = content.items.map(item => item.str).join(' ');
+      pages.push(text);
+    }
+    state.resumeText = pages.join('\n\n');
+    $('uploadStatusText').textContent = `PDF 解析完成（${pdf.numPages} 页，${state.resumeText.length} 字）`;
+    updateMatchButton();
+    showToast('PDF 解析成功');
+  } catch (err) {
+    console.error('PDF error:', err);
+    $('uploadStatusText').textContent = 'PDF 解析失败，请尝试粘贴文本';
+    showToast('PDF 解析失败');
+  }
+});
+
+// ====== Text Input ======
+$('resumeText').addEventListener('input', () => {
+  if (state.mode === 'text') {
+    state.resumeText = $('resumeText').value;
+    updateMatchButton();
+  }
+});
+
+function updateMatchButton() {
+  const hasJD = !!state.jdAnalysis;
+  const hasResume = state.resumeText.trim().length >= 20;
+  $('btnMatch').disabled = !(hasJD && hasResume);
+}
+
+// ====== Main Match Flow ======
+async function handleMatch() {
+  if (state.isAnalyzing) return;
+  state.isAnalyzing = true;
+  $('btnMatch').disabled = true;
+  $('btnMatchLabel').textContent = '分析中...';
+
+  // Hide empty, show process line
+  $('rightEmpty').style.display = 'none';
+  $('processLine').style.display = 'flex';
+  $('resultsArea').innerHTML = '';
+
+  // Speed up aurora
+  $('auroraBg').classList.add('analyzing');
+
+  const messages = [
+    '正在解析简历...',
+    '正在提取技能关键词...',
+    '正在匹配岗位要求...',
+    '正在分析能力差距...',
+    '正在生成AI建议...'
+  ];
+
+  // Step 1: Parse resume
+  $('processText').textContent = messages[0];
+  state.resumeAnalysis = window.ResumeParser.parse(state.resumeText);
+  await sleep(500);
+
+  // Step 2: Extract skills
+  $('processText').textContent = messages[1];
+  await sleep(600);
+
+  // Step 3: Match
+  $('processText').textContent = messages[2];
+  state.result = window.ResumeMatcher.match(state.jdAnalysis, state.resumeAnalysis);
+  await sleep(500);
+
+  // Step 4: Analyze gaps
+  $('processText').textContent = messages[3];
+  await sleep(600);
+
+  // Step 5: Generate suggestions
+  $('processText').textContent = messages[4];
+  await sleep(400);
+
+  // Slow down aurora
+  $('auroraBg').classList.remove('analyzing');
+
+  // Hide process line
+  $('processLine').style.display = 'none';
+
+  // Render results with stagger
+  await renderResultsStreamed(state.result);
+
+  $('btnMatchLabel').textContent = '重新匹配';
+  state.isAnalyzing = false;
+  $('btnMatch').disabled = false;
+
+  showToast('匹配分析完成！匹配度 ' + state.result.score + '%');
+}
+
+// ====== Streaming Render ======
+async function renderResultsStreamed(result) {
+  const area = $('resultsArea');
+  area.innerHTML = '';
+
+  const modules = [
+    { delay: 0,   html: renderScoreModule(result) },
+    { delay: 150, html: renderStrengthsModule(result) },
+    { delay: 300, html: renderGapsModule(result) },
+    { delay: 450, html: renderReasoningModule(result) },
+    { delay: 600, html: renderSuggestionsModule(result) },
+    { delay: 750, html: renderNextStepsModule(result) }
+  ];
+
+  for (const mod of modules) {
+    const div = document.createElement('div');
+    div.innerHTML = mod.html;
+    const moduleEl = div.firstElementChild;
+    area.appendChild(moduleEl);
+
+    await sleep(mod.delay);
+
+    requestAnimationFrame(() => {
+      moduleEl.classList.add('visible');
+    });
+
+    await sleep(120);
+  }
+
+  // Bind next step clicks
+  area.querySelectorAll('.next-step').forEach(el => {
+    el.addEventListener('click', () => {
+      const action = el.dataset.action;
+      if (action === 'learning-path') {
+        localStorage.setItem('ai_match_result', JSON.stringify(state.result));
+        localStorage.setItem('ai_jd_analysis', JSON.stringify(state.jdAnalysis));
+        window.location.href = 'learning-path.html';
+      }
+      if (action === 'hr-interview') {
+        localStorage.setItem('ai_match_result', JSON.stringify(state.result));
+        localStorage.setItem('ai_jd_analysis', JSON.stringify(state.jdAnalysis));
+        window.location.href = 'hr-interview.html';
+      }
+    });
+  });
+}
+
+// ====== Module Render Functions ======
+function renderScoreModule(result) {
+  return `<div class="result-module">
+    <div class="rm-header">
+      <div class="rm-icon" style="background:${result.verdictColor}15;color:${result.verdictColor};">🎯</div>
+      <h4>匹配度总览</h4>
+    </div>
+    <div class="rm-body">
+      <div class="score-hero">
+        <div class="score-ring-wrap">
+          <div class="score-ring" style="--ring-color:${result.verdictColor};--pct:${result.score}%;color:${result.verdictColor};">
+            ${result.score}%
+          </div>
+        </div>
+        <div class="score-info">
+          <div class="score-verdict" style="color:${result.verdictColor};">${result.verdict}</div>
+          <div class="score-detail">岗位技能 ${result.stats.totalJD} 项 · 匹配 ${result.stats.matched} 项 · 差距 ${result.stats.unmatched} 项</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderStrengthsModule(result) {
+  return `<div class="result-module">
+    <div class="rm-header">
+      <div class="rm-icon" style="background:#ecfdf5;color:var(--success);">✅</div>
+      <h4>优势能力分析</h4>
+    </div>
+    <div class="rm-body">
+      ${result.strengths.map(s => `<div class="strength-item">
+        <span class="si-icon">✓</span>
+        <span>${s.skill}<span class="tag-mini" style="background:${s.color}15;color:${s.color};">${s.category}</span></span>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderGapsModule(result) {
+  return `<div class="result-module">
+    <div class="rm-header">
+      <div class="rm-icon" style="background:#fef2f2;color:var(--danger);">⚠</div>
+      <h4>能力差距分析</h4>
+    </div>
+    <div class="rm-body">
+      ${result.gaps.map(g => `<div class="gap-item">
+        <span class="gi-icon">✗</span>
+        <div>
+          <span>${g.skill}<span class="tag-mini" style="background:${g.color}15;color:${g.color};">${g.importance === 'critical' ? '核心差距' : g.importance === 'important' ? '重要差距' : '建议补充'}</span></span>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;">${g.suggestion}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderReasoningModule(result) {
+  return `<div class="result-module">
+    <div class="rm-header">
+      <div class="rm-icon" style="background:linear-gradient(135deg,var(--accent),#6B8AFF);color:#fff;font-size:12px;font-weight:700;">AI</div>
+      <h4>AI推理总结</h4>
+    </div>
+    <div class="rm-body"><p class="reasoning-text">${result.reasoning}</p></div>
+  </div>`;
+}
+
+function renderSuggestionsModule(result) {
+  return `<div class="result-module">
+    <div class="rm-header">
+      <div class="rm-icon" style="background:#eef2ff;color:var(--accent);">💡</div>
+      <h4>AI 优化建议</h4>
+    </div>
+    <div class="rm-body">
+      <div class="sugg-section">
+        <div class="ss-label">📄 简历优化</div>
+        ${result.suggestions.resume.map(t => `<div class="ss-item">${t}</div>`).join('')}
+      </div>
+      <div class="sugg-section">
+        <div class="ss-label">🚀 项目补充</div>
+        ${result.suggestions.project.map(t => `<div class="ss-item">${t}</div>`).join('')}
+      </div>
+      <div class="sugg-section">
+        <div class="ss-label">📚 能力提升</div>
+        ${result.suggestions.skill.map(t => `<div class="ss-item">${t}</div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderNextStepsModule(result) {
+  return `<div class="result-module">
+    <div class="rm-header">
+      <div class="rm-icon" style="background:#fef3c7;color:var(--warning);">👉</div>
+      <h4>下一步建议</h4>
+    </div>
+    <div class="rm-body">
+      ${result.nextSteps.map(ns => `<div class="next-step" data-action="${ns.action}">
+        <span class="ns-icon">${ns.icon}</span>
+        <div class="ns-info">
+          <div class="ns-label">${ns.label}</div>
+          <div class="ns-desc">${ns.desc}</div>
+        </div>
+        <span style="color:var(--text3);">→</span>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ====== Event Binding ======
+$('btnMatch').addEventListener('click', handleMatch);
+
+// ====== Init ======
+loadJDContext();
+updateMatchButton();
+})();
+</script>
+</body>
+</html>

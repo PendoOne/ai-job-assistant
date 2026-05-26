@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI岗位JD解析器 — AI Job Assistant</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background:#f0f2f5; color:#333; min-height:100vh; }
+
+/* Header */
+.header { background: linear-gradient(135deg,#1a1a2e,#16213e,#0f3460); color:#fff; padding:16px 32px; position:sticky; top:0; z-index:100; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+.header .logo-area { display:flex; align-items:center; gap:10px; }
+.header .logo-area .icon { width:36px; height:36px; background:rgba(255,255,255,.15); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:18px; }
+.header h1 { font-size:18px; font-weight:600; }
+.header .sub { font-size:11px; opacity:.65; margin-top:1px; }
+.header nav { display:flex; gap:6px; }
+.header nav a { color:rgba(255,255,255,.75); text-decoration:none; font-size:12px; padding:6px 12px; border-radius:6px; transition:all .15s; border:1px solid rgba(255,255,255,.2); }
+.header nav a:hover { background:rgba(255,255,255,.12); color:#fff; }
+
+/* Main container */
+.main { max-width:1100px; margin:0 auto; padding:24px 20px 40px; }
+
+/* Input Card */
+.input-card { background:#fff; border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,.06); padding:24px; margin-bottom:24px; }
+.input-card .card-label { font-size:13px; font-weight:600; color:#555; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.input-card .card-label .dot { width:8px; height:8px; border-radius:50%; background:#0f3460; }
+.input-card textarea { width:100%; min-height:200px; border:1.5px solid #e8e8e8; border-radius:10px; padding:16px; font-size:13px; font-family: inherit; line-height:1.7; resize:vertical; transition:border-color .2s; outline:none; color:#333; }
+.input-card textarea:focus { border-color:#0f3460; box-shadow:0 0 0 3px rgba(15,52,96,.08); }
+.input-card textarea::placeholder { color:#bbb; }
+.btn-row { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; align-items:center; }
+.btn { padding:8px 20px; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; border:none; transition:all .15s; font-family:inherit; display:flex; align-items:center; gap:6px; }
+.btn-primary { background:#0f3460; color:#fff; }
+.btn-primary:hover { background:#162b50; transform:translateY(-1px); box-shadow:0 4px 12px rgba(15,52,96,.3); }
+.btn-primary:disabled { opacity:.5; cursor:not-allowed; transform:none; box-shadow:none; }
+.btn-outline { background:#fff; color:#0f3460; border:1.5px solid #0f3460; }
+.btn-outline:hover { background:#f0f5ff; }
+.btn-ghost { background:transparent; color:#888; padding:8px 12px; }
+.btn-ghost:hover { color:#555; background:#f5f5f5; }
+.char-count { margin-left:auto; font-size:11px; color:#aaa; }
+
+/* Empty State */
+.empty-state { text-align:center; padding:60px 20px; color:#999; }
+.empty-state .empty-icon { font-size:56px; margin-bottom:16px; opacity:.6; }
+.empty-state h3 { font-size:16px; color:#666; margin-bottom:6px; font-weight:500; }
+.empty-state p { font-size:13px; color:#aaa; line-height:1.6; }
+
+/* Results Grid */
+.results-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:24px; }
+
+.result-card { background:#fff; border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,.06); overflow:hidden; transition:all .2s; }
+.result-card:hover { box-shadow:0 6px 16px rgba(0,0,0,.1); transform:translateY(-2px); }
+.result-card .card-header { padding:16px 20px 12px; border-bottom:1px solid #f5f5f5; display:flex; align-items:center; gap:10px; }
+.result-card .card-header .card-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+.result-card .card-header h3 { font-size:14px; font-weight:600; }
+.result-card .card-body { padding:16px 20px; max-height:400px; overflow-y:auto; }
+.result-card .card-body::-webkit-scrollbar { width:4px; }
+.result-card .card-body::-webkit-scrollbar-thumb { background:#e0e0e0; border-radius:2px; }
+
+/* Skills */
+.skill-cat { margin-bottom:14px; }
+.skill-cat:last-child { margin-bottom:0; }
+.skill-cat .cat-label { font-size:11px; font-weight:600; color:#888; margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px; display:flex; align-items:center; gap:6px; }
+.skill-cat .cat-label .cat-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.chip-group { display:flex; flex-wrap:wrap; gap:6px; }
+.chip { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:500; line-height:1.6; }
+.chip.skill-chip { border:1.5px solid rgba(47,84,235,.25); }
+
+/* Direction */
+.direction-primary { text-align:center; padding:8px 0 16px; }
+.direction-primary .primary-badge { display:inline-block; padding:6px 18px; border-radius:20px; font-size:15px; font-weight:700; color:#fff; margin-bottom:8px; }
+.confidence-bar { height:6px; background:#f0f0f0; border-radius:3px; overflow:hidden; margin:8px 0 12px; }
+.confidence-bar .fill { height:100%; border-radius:3px; transition:width .4s ease; }
+.confidence-text { font-size:12px; color:#888; }
+.related-directions { margin-top:12px; border-top:1px solid #f5f5f5; padding-top:12px; }
+.related-directions .rel-label { font-size:10px; color:#aaa; text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+.rel-tag { display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; margin:2px 4px 2px 0; background:#f5f5f5; color:#666; }
+
+/* Competencies */
+.comp-item { padding:10px 0; border-bottom:1px solid #f8f8f8; }
+.comp-item:last-child { border-bottom:none; }
+.comp-item .comp-name { font-size:13px; font-weight:600; color:#333; margin-bottom:3px; }
+.comp-item .comp-evidence { font-size:10px; color:#aaa; line-height:1.5; font-style:italic; }
+.comp-item .comp-badge { display:inline-block; font-size:9px; padding:1px 6px; border-radius:8px; margin-left:6px; font-weight:500; }
+.comp-badge.required { background:#fff2f0; color:#e34f4f; border:1px solid #ffccc7; }
+.comp-badge.preferred { background:#fff7e6; color:#fa8c16; border:1px solid #ffd591; }
+
+/* JSON Panel */
+.json-panel { background:#fff; border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,.06); overflow:hidden; }
+.json-panel .json-header { padding:14px 20px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; user-select:none; transition:background .15s; }
+.json-panel .json-header:hover { background:#fafafa; }
+.json-panel .json-header .json-title { font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px; }
+.json-panel .json-header .arrow { transition:transform .25s; font-size:10px; color:#888; }
+.json-panel .json-header .arrow.open { transform:rotate(90deg); }
+.json-panel .json-body { border-top:1px solid #f0f0f0; }
+.json-panel .json-body pre { margin:0; padding:20px; background:#1a1a2e; color:#e0e0e0; font-family: "SF Mono", "Fira Code", "Consolas", monospace; font-size:12px; line-height:1.7; overflow-x:auto; max-height:500px; overflow-y:auto; }
+.json-panel .json-body pre::-webkit-scrollbar { width:6px; height:6px; }
+.json-panel .json-body pre::-webkit-scrollbar-thumb { background:#444; border-radius:3px; }
+.json-actions { display:flex; gap:6px; }
+.json-actions button { padding:5px 12px; border-radius:6px; font-size:11px; border:1px solid #e0e0e0; background:#fff; cursor:pointer; transition:all .15s; color:#555; }
+.json-actions button:hover { border-color:#0f3460; color:#0f3460; }
+
+/* Stats row */
+.stats-row { display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap; }
+.stats-row .stat-item { background:#fff; border-radius:8px; padding:10px 16px; box-shadow:0 1px 2px rgba(0,0,0,.04); font-size:12px; color:#888; display:flex; align-items:center; gap:8px; }
+.stats-row .stat-item strong { font-size:18px; font-weight:700; color:#0f3460; }
+
+/* Toast */
+.toast { position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:10px 24px; border-radius:8px; font-size:13px; z-index:9999; opacity:0; transition:opacity .3s; pointer-events:none; }
+.toast.show { opacity:1; }
+
+/* Loading spinner */
+@keyframes spin { to { transform:rotate(360deg); } }
+.spinner { width:16px; height:16px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; display:inline-block; }
+.spinner-dark { width:16px; height:16px; border:2px solid rgba(15,52,96,.2); border-top-color:#0f3460; border-radius:50%; animation:spin .6s linear infinite; display:inline-block; }
+
+/* Image Upload Zone */
+.upload-zone { border:1.5px dashed #d9d9d9; border-radius:10px; padding:14px 18px; margin-bottom:14px; display:flex; align-items:center; gap:14px; transition:all .2s; background:#fafbfc; cursor:pointer; flex-wrap:wrap; }
+.upload-zone:hover { border-color:#0f3460; background:#f0f5ff; }
+.upload-zone.drag-over { border-color:#0f3460; background:#e6f0ff; box-shadow:0 0 0 3px rgba(15,52,96,.08); }
+.upload-zone.has-image { border-style:solid; border-color:#e0e0e0; background:#fff; cursor:default; }
+.upload-zone .uz-icon { font-size:24px; flex-shrink:0; }
+.upload-zone .uz-info { flex:1; min-width:150px; }
+.upload-zone .uz-info .uz-title { font-size:12px; font-weight:600; color:#555; }
+.upload-zone .uz-info .uz-hint { font-size:10px; color:#aaa; margin-top:2px; }
+.upload-zone .uz-btn { padding:6px 14px; border-radius:6px; font-size:11px; font-weight:500; cursor:pointer; border:1px solid #0f3460; background:#fff; color:#0f3460; transition:all .15s; flex-shrink:0; white-space:nowrap; }
+.upload-zone .uz-btn:hover { background:#0f3460; color:#fff; }
+.upload-zone .uz-preview { width:52px; height:52px; border-radius:8px; object-fit:cover; border:1px solid #f0f0f0; flex-shrink:0; }
+.upload-zone .uz-ocr-status { display:flex; align-items:center; gap:6px; font-size:11px; color:#0f3460; flex-shrink:0; }
+.upload-zone .uz-ocr-status.done { color:#52c41a; }
+.upload-zone .uz-clear { padding:4px 10px; border-radius:4px; font-size:10px; cursor:pointer; border:none; background:#f5f5f5; color:#888; flex-shrink:0; }
+.upload-zone .uz-clear:hover { background:#ff4d4f; color:#fff; }
+.upload-zone #ocrProgress { width:80px; height:4px; background:#e8e8e8; border-radius:2px; overflow:hidden; flex-shrink:0; }
+.upload-zone #ocrProgress .fill { height:100%; background:#0f3460; border-radius:2px; transition:width .3s; }
+@media (max-width:768px) {
+  .upload-zone { padding:12px; gap:8px; }
+  .upload-zone .uz-preview { width:40px; height:40px; }
+}
+
+/* Responsive */
+@media (max-width:768px) {
+  .results-grid { grid-template-columns:1fr; }
+  .header { padding:14px 16px; }
+  .header h1 { font-size:16px; }
+  .main { padding:16px 12px 32px; }
+  .input-card { padding:16px; }
+  .input-card textarea { min-height:160px; font-size:12px; }
+  .btn { padding:7px 14px; font-size:12px; }
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.min.js"></script>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo-area">
+    <div class="icon">🤖</div>
+    <div>
+      <h1>AI岗位JD解析器</h1>
+      <div class="sub">一键提取技能关键词、岗位方向、核心能力</div>
+    </div>
+  </div>
+  <nav>
+    <a href="compare.html">岗位对比</a>
+    <a href="招聘岗位整理.html">岗位整理</a>
+  </nav>
+</header>
+
+<div class="main">
+  <!-- Input Card -->
+  <div class="input-card">
+    <div class="card-label"><span class="dot"></span>粘贴 Boss 直聘岗位 JD</div>
+
+    <!-- Image Upload Zone -->
+    <div class="upload-zone" id="uploadZone">
+      <span class="uz-icon">📷</span>
+      <div class="uz-info">
+        <div class="uz-title">截图识别文字</div>
+        <div class="uz-hint">Boss直聘无法复制？截图后上传自动提取文字</div>
+      </div>
+      <button class="uz-btn" id="btnSelectImage">选择图片</button>
+      <input type="file" id="fileInput" accept="image/*" style="display:none">
+      <!-- Preview + OCR status (hidden initially) -->
+      <img class="uz-preview" id="imgPreview" style="display:none" alt="预览">
+      <span class="uz-ocr-status" id="ocrStatus" style="display:none"></span>
+      <div id="ocrProgress" style="display:none"><div class="fill" style="width:0%"></div></div>
+      <button class="uz-clear" id="btnClearImage" style="display:none">✕</button>
+    </div>
+
+    <textarea id="jdInput" placeholder="在此粘贴 Boss 直聘/猎聘等招聘平台的岗位 JD 文本...
+
+支持格式：
+• 完整的岗位描述（包含岗位职责、任职要求等）
+• OCR 提取的纯文本（自动清洗噪声）
+• 直接复制的招聘页面内容
+
+解析结果将展示：
+✓ 技能关键词（按类别分组）
+✓ 岗位方向分类（含置信度）
+✓ 核心能力分析（带原文证据）
+✓ 结构化 JSON 输出"></textarea>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnParse" disabled>
+        <span id="btnParseText">🔍 开始解析</span>
+      </button>
+      <button class="btn btn-outline" id="btnDemo">📋 使用示例</button>
+      <button class="btn btn-ghost" id="btnClear">清空</button>
+      <span class="char-count" id="charCount">0 字</span>
+    </div>
+  </div>
+
+  <!-- Results Area -->
+  <div id="resultsContainer">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">📄</div>
+      <h3>等待输入岗位 JD</h3>
+      <p>粘贴 JD 文本后点击"开始解析"，或点击"使用示例"加载 Demo</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="../src/jd-parser/skill-taxonomy.js"></script>
+<script src="../src/jd-parser/jd-parser.js"></script>
+<script>
+(function () {
+
+const DEMO_JD = `【AI创新产品实习生-米哈游】
+岗位职责：
+1. 协作AI产品应用探索，参与AI+游戏的产品设计与运营策略制定
+2. 对前沿AI能力及趋势保持敏锐洞察，调研AI领域前沿产品
+3. 理解游戏内容生产流程和用户需求，协助完成PRD撰写与产品原型设计
+4. 跨部门沟通协作，推动AI功能在游戏场景中落地
+
+任职要求：
+1. 对AI创新产品有强烈热情，熟悉ChatGPT、Claude、Midjourney等常见AI应用工具
+2. 具备良好的产品思维和用户研究能力
+3. 优秀的逻辑分析能力，善于从数据中发现问题
+4. 有较强的跨团队沟通协作能力和项目推进能力
+5. 游戏理解深刻，有丰富的游戏体验经历优先
+6. 本科及以上学历，25届及以后毕业
+
+员工福利：
+提供有竞争力的实习薪资 | 免费三餐+下午茶 | 弹性工作制 | 节日福利
+
+工作地点：上海徐汇区漕河泾
+薪资：200-350元/天`;
+
+const state = {
+  rawText: '',
+  result: null,
+  jsonExpanded: false,
+  isParsing: false
+};
+
+// ---- UI Helpers ----
+function $(id) { return document.getElementById(id); }
+
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ---- Render ----
+function renderResults(result) {
+  const { skills, direction, competencies, meta, stats } = result;
+  const sk = skills || {};
+  const catIds = Object.keys(sk);
+
+  let skillsHTML = '';
+  if (catIds.length === 0) {
+    skillsHTML = '<div style="color:#aaa;font-size:12px;text-align:center;padding:20px;">未匹配到技能关键词</div>';
+  } else {
+    for (const catId of catIds) {
+      const cat = sk[catId];
+      skillsHTML += '<div class="skill-cat">' +
+        '<div class="cat-label"><span class="cat-dot" style="background:' + cat.color + '"></span>' + cat.label + '</div>' +
+        '<div class="chip-group">' +
+        cat.keywords.map(k => '<span class="chip skill-chip" style="background:' + cat.color + '10;color:' + cat.color + ';border-color:' + cat.color + '30">' + k + '</span>').join('') +
+        '</div></div>';
+    }
+  }
+
+  const d = direction || {};
+  const p = d.primary || {};
+  const dirColor = p.color || '#0f3460';
+  const confPct = Math.round((p.confidence || 0) * 100);
+
+  let dirHTML = '';
+  if (!p.label) {
+    dirHTML = '<div style="color:#aaa;font-size:12px;text-align:center;padding:20px;">未能判定岗位方向</div>';
+  } else {
+    dirHTML =
+      '<div class="direction-primary">' +
+        '<div class="primary-badge" style="background:' + dirColor + '">' + (p.icon || '') + ' ' + p.label + '</div>' +
+        '<div class="confidence-bar"><div class="fill" style="width:' + confPct + '%;background:' + dirColor + '"></div></div>' +
+        '<div class="confidence-text">置信度 ' + confPct + '%</div>' +
+      '</div>';
+    if (d.related && d.related.length > 0) {
+      dirHTML += '<div class="related-directions">' +
+        '<div class="rel-label">关联方向</div>' +
+        d.related.map(r => '<span class="rel-tag">' + r.icon + ' ' + r.label + '</span>').join('') +
+        '</div>';
+    }
+  }
+
+  const comps = competencies || [];
+  let compHTML = '';
+  if (comps.length === 0) {
+    compHTML = '<div style="color:#aaa;font-size:12px;text-align:center;padding:20px;">未提取到核心能力</div>';
+  } else {
+    compHTML = comps.map(c =>
+      '<div class="comp-item">' +
+        '<div class="comp-name">' + c.name + '<span class="comp-badge ' + c.importance + '">' + (c.importance === 'required' ? '必须' : '加分') + '</span></div>' +
+        '<div class="comp-evidence">原文：' + (c.evidence || '') + '</div>' +
+      '</div>'
+    ).join('');
+  }
+
+  let metaHTML = '';
+  if (meta && Object.keys(meta).length > 0) {
+    const labels = { title: '岗位名称', company: '公司', location: '地点', salary: '薪资' };
+    metaHTML = '<div style="margin-bottom:16px;display:flex;flex-wrap:wrap;gap:8px;">' +
+      Object.entries(meta).map(([k,v]) => v ? '<span style="background:#f0f5ff;color:#2f54eb;padding:3px 10px;border-radius:6px;font-size:11px;">' + (labels[k]||k) + ': ' + v + '</span>' : '').join('') +
+      '</div>';
+  }
+
+  const jsonStr = JSON.stringify({ skills, direction, competencies, meta, stats }, null, 2);
+
+  const container = $('resultsContainer');
+  container.innerHTML =
+    '<div class="stats-row">' +
+      '<div class="stat-item">技能关键词 <strong>' + stats.totalSkills + '</strong></div>' +
+      '<div class="stat-item">技能类别 <strong>' + stats.totalCategories + '</strong></div>' +
+      '<div class="stat-item">核心能力 <strong>' + comps.length + '</strong></div>' +
+      '<div class="stat-item">解析耗时 <strong>' + stats.parseTimeMs + 'ms</strong></div>' +
+      '<div class="stat-item">文本长度 <strong>' + stats.textLength + '</strong>字</div>' +
+    '</div>' +
+
+    '<div class="results-grid">' +
+      // Skills card
+      '<div class="result-card">' +
+        '<div class="card-header"><div class="card-icon" style="background:#f0f5ff;color:#2f54eb;">🏷</div><h3>技能关键词</h3></div>' +
+        '<div class="card-body">' + skillsHTML + '</div>' +
+      '</div>' +
+      // Direction card
+      '<div class="result-card">' +
+        '<div class="card-header"><div class="card-icon" style="background:#f0f5ff;color:#722ed1;">🎯</div><h3>岗位方向分类</h3></div>' +
+        '<div class="card-body">' + dirHTML + '</div>' +
+      '</div>' +
+      // Competencies card
+      '<div class="result-card">' +
+        '<div class="card-header"><div class="card-icon" style="background:#f0f5ff;color:#fa8c16;">💡</div><h3>核心能力</h3></div>' +
+        '<div class="card-body">' + compHTML + '</div>' +
+      '</div>' +
+    '</div>' +
+
+    // Meta info
+    metaHTML +
+
+    // JSON panel
+    '<div class="json-panel" id="jsonPanel">' +
+      '<div class="json-header" id="jsonToggle">' +
+        '<span class="json-title">📋 结构化 JSON <span style="font-weight:400;color:#aaa;font-size:11px;">（点击展开）</span></span>' +
+        '<span class="arrow" id="jsonArrow">▶</span>' +
+      '</div>' +
+      '<div class="json-body" id="jsonBody" style="display:none;">' +
+        '<pre id="jsonOutput">' + escapeHTML(jsonStr) + '</pre>' +
+        '<div style="padding:10px 20px;border-top:1px solid #333;display:flex;gap:8px;">' +
+          '<button onclick="copyJSON()" style="padding:6px 14px;border-radius:6px;font-size:12px;border:1px solid #555;background:#2a2a3e;color:#ddd;cursor:pointer;">📋 复制 JSON</button>' +
+          '<button onclick="downloadJSON()" style="padding:6px 14px;border-radius:6px;font-size:12px;border:1px solid #555;background:#2a2a3e;color:#ddd;cursor:pointer;">💾 下载 JSON</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  // Bind JSON toggle
+  $('jsonToggle').addEventListener('click', toggleJSON);
+  state.jsonExpanded = false;
+
+  window._lastResult = { skills, direction, competencies, meta, stats };
+}
+
+function escapeHTML(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function toggleJSON() {
+  state.jsonExpanded = !state.jsonExpanded;
+  const body = $('jsonBody');
+  const arrow = $('jsonArrow');
+  if (state.jsonExpanded) {
+    body.style.display = 'block';
+    arrow.classList.add('open');
+  } else {
+    body.style.display = 'none';
+    arrow.classList.remove('open');
+  }
+}
+
+function renderEmpty() {
+  $('resultsContainer').innerHTML =
+    '<div class="empty-state">' +
+      '<div class="empty-icon">📄</div>' +
+      '<h3>等待输入岗位 JD</h3>' +
+      '<p>粘贴 JD 文本后点击"开始解析"，或点击"使用示例"加载 Demo</p>' +
+    '</div>';
+}
+
+// ---- Actions ----
+function handleParse() {
+  const text = $('jdInput').value.trim();
+  if (!text || text.length < 10) {
+    showToast('请先粘贴完整的岗位 JD 文本');
+    return;
+  }
+
+  state.isParsing = true;
+  const btn = $('btnParseText');
+  btn.innerHTML = '<span class="spinner"></span> 解析中...';
+  $('btnParse').disabled = true;
+
+  // Use setTimeout to allow UI update before parsing
+  setTimeout(() => {
+    try {
+      const result = window.JDParser.parse(text);
+      state.result = result;
+      state.rawText = text;
+      renderResults(result);
+      showToast('解析完成！找到 ' + result.stats.totalSkills + ' 个技能关键词');
+    } catch (e) {
+      console.error('Parse error:', e);
+      showToast('解析出错，请检查输入文本格式');
+    } finally {
+      state.isParsing = false;
+      btn.innerHTML = '🔍 开始解析';
+      updateParseButton();
+    }
+  }, 50);
+}
+
+function handleDemo() {
+  $('jdInput').value = DEMO_JD;
+  updateCharCount();
+  updateParseButton();
+  showToast('已加载示例 JD（米哈游 AI创新产品实习生）');
+}
+
+function handleClear() {
+  $('jdInput').value = '';
+  state.result = null;
+  state.rawText = '';
+  updateCharCount();
+  updateParseButton();
+  renderEmpty();
+  showToast('已清空');
+}
+
+// ---- Image Upload / OCR ----
+let _ocrWorker = null;
+
+async function getOCRWorker() {
+  if (_ocrWorker) return _ocrWorker;
+  showToast('正在加载中文OCR引擎（首次约需下载10MB语言包）...');
+  _ocrWorker = await Tesseract.createWorker('chi_sim');
+  return _ocrWorker;
+}
+
+function updateUploadUI(st) {
+  const preview = $('imgPreview');
+  const status = $('ocrStatus');
+  const progress = $('ocrProgress');
+  const clearBtn = $('btnClearImage');
+  const selectBtn = $('btnSelectImage');
+  const zone = $('uploadZone');
+  const info = zone.querySelector('.uz-info');
+
+  if (st === 'idle') {
+    zone.classList.remove('has-image');
+    preview.style.display = 'none';
+    status.style.display = 'none';
+    progress.style.display = 'none';
+    clearBtn.style.display = 'none';
+    selectBtn.style.display = '';
+    info.querySelector('.uz-title').textContent = '截图识别文字';
+    info.querySelector('.uz-hint').textContent = 'Boss直聘无法复制？截图后上传自动提取文字';
+  } else if (st === 'processing') {
+    zone.classList.add('has-image');
+    preview.style.display = '';
+    status.style.display = '';
+    status.innerHTML = '<span class="spinner-dark"></span> 识别中...';
+    status.className = 'uz-ocr-status';
+    progress.style.display = '';
+    progress.querySelector('.fill').style.width = '0%';
+    clearBtn.style.display = '';
+    selectBtn.style.display = 'none';
+    info.querySelector('.uz-title').textContent = '正在识别...';
+    info.querySelector('.uz-hint').textContent = '请稍候，OCR引擎正在提取文字';
+  } else if (st === 'done') {
+    zone.classList.add('has-image');
+    preview.style.display = '';
+    status.style.display = '';
+    status.innerHTML = '✓ 已识别';
+    status.className = 'uz-ocr-status done';
+    progress.style.display = 'none';
+    clearBtn.style.display = '';
+    selectBtn.style.display = 'none';
+    info.querySelector('.uz-title').textContent = '识别完成';
+    info.querySelector('.uz-hint').textContent = '文字已填入下方输入框，可手动修正后解析';
+  }
+}
+
+function cleanOCRText(text) {
+  let t = text;
+  t = t.replace(/[ \t]+/g, ' ');
+  t = t.replace(/\n{3,}/g, '\n\n');
+  t = t.split('\n').map(l => l.trim()).join('\n');
+  return t.trim();
+}
+
+async function handleImageFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => { $('imgPreview').src = e.target.result; };
+  reader.readAsDataURL(file);
+
+  updateUploadUI('processing');
+
+  try {
+    const worker = await getOCRWorker();
+    const { data: { text } } = await worker.recognize(file);
+    const cleaned = cleanOCRText(text);
+
+    if (!cleaned) {
+      updateUploadUI('idle');
+      showToast('未识别到文字，请确认图片中包含中文文本');
+      return;
+    }
+
+    const ta = $('jdInput');
+    ta.value = ta.value.trim() ? ta.value.trim() + '\n\n' + cleaned : cleaned;
+    updateCharCount();
+    updateParseButton();
+    updateUploadUI('done');
+    showToast('OCR完成！识别 ' + cleaned.length + ' 字，已填入输入框');
+  } catch (err) {
+    console.error('OCR error:', err);
+    updateUploadUI('idle');
+    showToast('识别失败，请检查图片清晰度或重试');
+  }
+}
+
+function handleClearImage() {
+  updateUploadUI('idle');
+  $('fileInput').value = '';
+  _ocrWorker = null;
+}
+
+function updateCharCount() {
+  const len = $('jdInput').value.length;
+  $('charCount').textContent = len + ' 字';
+}
+
+function updateParseButton() {
+  const len = $('jdInput').value.trim().length;
+  $('btnParse').disabled = len < 10;
+}
+
+// ---- Global actions (called from buttons in dynamic HTML) ----
+window.copyJSON = function () {
+  if (!window._lastResult) return;
+  const jsonStr = JSON.stringify(window._lastResult, null, 2);
+  navigator.clipboard.writeText(jsonStr).then(() => {
+    showToast('JSON 已复制到剪贴板');
+  }).catch(() => {
+    showToast('复制失败，请手动选择复制');
+  });
+};
+
+window.downloadJSON = function () {
+  if (!window._lastResult) return;
+  const jsonStr = JSON.stringify(window._lastResult, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'jd-analysis-' + Date.now() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('JSON 文件已下载');
+};
+
+// ---- Event binding ----
+function bindEvents() {
+  $('btnParse').addEventListener('click', handleParse);
+  $('btnDemo').addEventListener('click', handleDemo);
+  $('btnClear').addEventListener('click', handleClear);
+  $('jdInput').addEventListener('input', () => {
+    updateCharCount();
+    updateParseButton();
+  });
+  // Ctrl+Enter to parse
+  $('jdInput').addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleParse();
+    }
+  });
+
+  // Image upload: click zone -> file dialog
+  $('uploadZone').addEventListener('click', (e) => {
+    if (e.target.closest('button') || e.target.closest('#ocrProgress')) return;
+    if (_ocrWorker && $('imgPreview').style.display !== 'none') return;
+    $('fileInput').click();
+  });
+  // Image upload: file select button
+  $('btnSelectImage').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('fileInput').click();
+  });
+  // Image upload: file chosen
+  $('fileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) handleImageFile(file);
+  });
+  // Image upload: drag & drop
+  const zone = $('uploadZone');
+  zone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    zone.classList.add('drag-over');
+  });
+  zone.addEventListener('dragleave', () => {
+    zone.classList.remove('drag-over');
+  });
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleImageFile(file);
+  });
+  // Image upload: clear button
+  $('btnClearImage').addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleClearImage();
+  });
+}
+
+// ---- Init ----
+function init() {
+  updateCharCount();
+  updateParseButton();
+  bindEvents();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+})();
+</script>
+</body>
+</html>

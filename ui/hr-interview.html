@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI模拟面试 — AI求职助手</title>
+<style>
+/* ====== Design Tokens ====== */
+:root {
+  --bg: #fafbfc;
+  --card: #fff;
+  --text: #1a1a2e;
+  --text2: #5a5f6e;
+  --text3: #9499a5;
+  --accent: #4F7CFF;
+  --accent-light: #EEF3FF;
+  --success: #19B37D;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --border: #e8eaef;
+  --radius: 16px;
+  --radius-sm: 12px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:var(--font); background:var(--bg); color:var(--text);
+  min-height:100vh; line-height:1.6; overflow:hidden;
+}
+
+/* ====== Subtle Aurora ====== */
+.aurora-bg {
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  overflow:hidden; opacity:.18; transition:opacity 1.5s;
+}
+.aurora-bg.analyzing { opacity:.28; }
+.aurora-orb {
+  position:absolute; border-radius:50%;
+  filter:blur(160px);
+}
+.orb-a {
+  width:480px; height:480px; background:#4F7CFF;
+  top:-15%; right:-10%;
+  animation:aurora-a 50s ease-in-out infinite;
+}
+.orb-b {
+  width:420px; height:420px; background:#6B8AFF;
+  bottom:-12%; left:-8%;
+  animation:aurora-b 55s ease-in-out infinite;
+}
+.orb-c {
+  width:380px; height:380px; background:#b8b5e0;
+  top:50%; left:40%;
+  animation:aurora-c 48s ease-in-out infinite;
+}
+@keyframes aurora-a {
+  0%,100% { transform:translate(0,0) scale(1); }
+  25% { transform:translate(30px,-20px) scale(1.04); }
+  50% { transform:translate(-15px,18px) scale(.97); }
+  75% { transform:translate(20px,-8px) scale(1.02); }
+}
+@keyframes aurora-b {
+  0%,100% { transform:translate(0,0) scale(1); }
+  33% { transform:translate(-20px,15px) scale(1.03); }
+  66% { transform:translate(18px,-15px) scale(.98); }
+}
+@keyframes aurora-c {
+  0%,100% { transform:translate(0,0) scale(1); }
+  20% { transform:translate(-18px,-15px) scale(1.02); }
+  50% { transform:translate(15px,20px) scale(.96); }
+  80% { transform:translate(-10px,8px) scale(1.01); }
+}
+.aurora-bg.analyzing .orb-a { animation-duration:22s; }
+.aurora-bg.analyzing .orb-b { animation-duration:25s; }
+.aurora-bg.analyzing .orb-c { animation-duration:20s; }
+
+/* ====== Header ====== */
+.header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 24px; position:sticky; top:0; z-index:100;
+  background:rgba(255,255,255,.7); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border); height:50px;
+}
+.header .back {
+  padding:5px 12px; border-radius:8px; font-size:12px;
+  cursor:pointer; border:1px solid var(--border);
+  background:var(--card); color:var(--text2);
+  font-family:var(--font); transition:all .15s;
+  text-decoration:none; display:flex; align-items:center; gap:5px;
+}
+.header .back:hover { border-color:var(--accent); color:var(--accent); }
+.header .hd-title { font-size:15px; font-weight:700; }
+.header .hd-sub { font-size:11px; color:var(--text3); }
+
+/* ====== Workspace ====== */
+.workspace { display:flex; height:calc(100vh - 50px); position:relative; z-index:1; }
+
+/* ====== Left Panel ====== */
+.left-panel {
+  width:340px; flex-shrink:0; padding:20px 16px;
+  overflow-y:auto; background:rgba(255,255,255,.45);
+  backdrop-filter:blur(8px); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; gap:14px;
+}
+.left-panel::-webkit-scrollbar { width:4px; }
+.left-panel::-webkit-scrollbar-thumb { background:#e0e0e0; border-radius:2px; }
+
+.info-card {
+  background:rgba(255,255,255,.7);
+  border:1px solid var(--border);
+  border-radius:14px; padding:16px;
+}
+.info-card .ic-label {
+  font-size:10px; text-transform:uppercase; letter-spacing:.5px;
+  color:var(--accent); font-weight:700; margin-bottom:8px;
+  display:flex; align-items:center; gap:6px;
+}
+.ic-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); }
+.info-card .ic-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.info-card .ic-meta { font-size:11px; color:var(--text3); }
+
+/* Capability */
+.cap-row { display:flex; align-items:center; gap:10px; padding:6px 0; font-size:12px; }
+.cap-row .cap-tag {
+  padding:2px 8px; border-radius:8px; font-size:10px; font-weight:500;
+  flex-shrink:0;
+}
+.cap-list { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+.cap-chip {
+  padding:2px 8px; border-radius:8px; font-size:10px; font-weight:500;
+  border:1px solid var(--border); color:var(--text2);
+}
+
+/* Progress */
+.progress-round {
+  font-size:22px; font-weight:800; color:var(--accent);
+  margin-bottom:2px;
+}
+.progress-label { font-size:11px; color:var(--text3); }
+.progress-bar-wrap {
+  height:4px; background:#f0f0f0; border-radius:2px;
+  margin-top:10px; overflow:hidden;
+}
+.progress-bar-fill {
+  height:100%; background:var(--accent); border-radius:2px;
+  width:0%; transition:width .5s ease;
+}
+
+/* Score dims in left panel */
+.dim-row {
+  display:flex; align-items:center; gap:10px;
+  padding:5px 0; font-size:11px;
+}
+.dim-row .dr-label { width:60px; color:var(--text2); flex-shrink:0; }
+.dim-row .dr-bar-wrap { flex:1; height:4px; background:#f0f0f0; border-radius:2px; overflow:hidden; }
+.dim-row .dr-bar-fill { height:100%; border-radius:2px; transition:width .8s ease; }
+.dim-row .dr-val { width:28px; text-align:right; font-weight:600; color:var(--text); flex-shrink:0; }
+
+/* ====== Right Panel: Chat Workspace ====== */
+.right-panel {
+  flex:1; display:flex; flex-direction:column;
+  background:rgba(255,255,255,.3); overflow:hidden;
+}
+
+/* Messages */
+.msg-list {
+  flex:1; overflow-y:auto; padding:24px 32px 16px;
+  display:flex; flex-direction:column; gap:16px;
+}
+.msg-list::-webkit-scrollbar { width:4px; }
+.msg-list::-webkit-scrollbar-thumb { background:#e0e0e0; border-radius:2px; }
+
+/* AI Message */
+.ai-msg {
+  display:flex; gap:12px; max-width:700px;
+  opacity:0; transform:translateY(10px);
+  transition:all .5s cubic-bezier(.4,0,.2,1);
+}
+.ai-msg.visible { opacity:1; transform:translateY(0); }
+.ai-msg .ai-avatar {
+  width:32px; height:32px; border-radius:8px;
+  background:linear-gradient(135deg,var(--accent),#6B8AFF);
+  display:flex; align-items:center; justify-content:center;
+  font-size:15px; flex-shrink:0; color:#fff;
+}
+.ai-msg .ai-bubble {
+  background:var(--card); border-radius:14px;
+  padding:14px 18px; border:1px solid var(--border);
+  box-shadow:0 1px 3px rgba(0,0,0,.03);
+  font-size:14px; line-height:1.8; color:var(--text);
+}
+.ai-msg .ai-time {
+  font-size:10px; color:var(--text3); margin-top:4px; padding-left:4px;
+}
+
+/* User Message */
+.user-msg {
+  display:flex; gap:12px; max-width:700px; align-self:flex-end;
+  flex-direction:row-reverse;
+  opacity:0; transform:translateY(10px);
+  transition:all .35s ease;
+}
+.user-msg.visible { opacity:1; transform:translateY(0); }
+.user-msg .u-avatar {
+  width:30px; height:30px; border-radius:8px;
+  background:#f0f0f0; display:flex; align-items:center;
+  justify-content:center; font-size:14px; flex-shrink:0;
+}
+.user-msg .u-bubble {
+  background:var(--accent); color:#fff; border-radius:14px;
+  padding:12px 16px; font-size:13px; line-height:1.7;
+  box-shadow:0 2px 8px rgba(79,124,255,.15);
+}
+
+/* Analysis Card */
+.analysis-card {
+  background:var(--card); border-radius:var(--radius);
+  padding:0; margin:8px 0 8px 44px; max-width:680px;
+  border:1px solid #e8eaef; overflow:hidden;
+  opacity:0; transform:translateY(12px);
+  transition:all .5s cubic-bezier(.4,0,.2,1);
+}
+.analysis-card.visible { opacity:1; transform:translateY(0); }
+.analysis-card .ac-header {
+  padding:14px 20px; background:#fafbfd;
+  border-bottom:1px solid #f0f0f0;
+  font-size:12px; font-weight:700; color:var(--accent);
+  display:flex; align-items:center; gap:8px;
+}
+.analysis-card .ac-body { padding:18px 20px; }
+
+/* Dimension mini bars in analysis */
+.a-dim { margin-bottom:12px; }
+.a-dim:last-child { margin-bottom:0; }
+.a-dim .ad-header {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:4px;
+}
+.a-dim .ad-label { font-size:12px; font-weight:600; color:var(--text); }
+.a-dim .ad-score { font-size:11px; font-weight:700; }
+.a-dim .ad-bar-wrap { height:4px; background:#f0f0f0; border-radius:2px; overflow:hidden; }
+.a-dim .ad-bar-fill { height:100%; border-radius:2px; transition:width .8s ease; }
+.a-dim .ad-comment { font-size:11px; color:var(--text3); margin-top:4px; }
+
+/* Suggestions in analysis */
+.a-sugg { margin-top:14px; }
+.a-sugg .as-label {
+  font-size:10px; font-weight:700; color:var(--accent);
+  text-transform:uppercase; letter-spacing:.3px; margin-bottom:6px;
+}
+.a-sugg .as-item {
+  font-size:12px; color:var(--text2); padding:4px 0;
+  display:flex; gap:6px; line-height:1.5;
+}
+.a-sugg .as-item::before { content:'›'; color:var(--accent); font-weight:700; flex-shrink:0; }
+
+/* Positive points */
+.a-positive { margin-top:12px; }
+.a-positive .ap-item {
+  font-size:12px; color:var(--success); padding:3px 0;
+  display:flex; gap:6px; line-height:1.5;
+}
+.a-positive .ap-item::before { content:'✓'; font-weight:700; flex-shrink:0; }
+
+/* Follow-up */
+.follow-up-msg {
+  background:#F7F8FA; border-radius:14px; padding:14px 18px;
+  margin:0 0 8px 44px; max-width:680px;
+  border:1px solid rgba(79,124,255,.15);
+  opacity:0; transform:translateY(8px);
+  transition:all .4s ease .3s;
+}
+.follow-up-msg.visible { opacity:1; transform:translateY(0); }
+.follow-up-msg .fu-label {
+  font-size:10px; font-weight:700; color:var(--accent);
+  text-transform:uppercase; letter-spacing:.3px; margin-bottom:6px;
+}
+.follow-up-msg .fu-text { font-size:14px; color:var(--text); line-height:1.7; }
+.follow-up-msg .fu-reason {
+  font-size:11px; color:var(--text3); margin-top:8px;
+  font-style:italic;
+}
+
+/* Analyzing indicator */
+.analyzing-indicator {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 20px; margin-left:44px;
+  font-size:12px; color:var(--accent);
+  opacity:0; transition:opacity .3s;
+}
+.analyzing-indicator.show { opacity:1; }
+.analyzing-indicator .ai-spinner {
+  width:14px; height:14px; border:2px solid rgba(79,124,255,.15);
+  border-top-color:var(--accent); border-radius:50%;
+  animation:spin .7s linear infinite; flex-shrink:0;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Input Area */
+.input-area {
+  padding:16px 32px 20px; border-top:1px solid var(--border);
+  background:rgba(255,255,255,.6); backdrop-filter:blur(8px);
+  display:flex; gap:10px; align-items:flex-end;
+}
+.input-area textarea {
+  flex:1; border:1.5px solid var(--border);
+  border-radius:12px; padding:12px 16px;
+  font-size:13px; font-family:var(--font); line-height:1.6;
+  resize:none; outline:none; color:var(--text);
+  max-height:100px; min-height:44px;
+  transition:border-color .2s;
+}
+.input-area textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,124,255,.08); }
+.input-area textarea::placeholder { color:var(--text3); }
+.btn-send {
+  width:44px; height:44px; border-radius:12px;
+  border:none; background:var(--accent); color:#fff;
+  font-size:18px; cursor:pointer; flex-shrink:0;
+  transition:all .15s; display:flex; align-items:center; justify-content:center;
+}
+.btn-send:hover { background:#3B6AE0; transform:scale(1.04); }
+.btn-send:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+
+/* ====== Report View ====== */
+.report-view {
+  flex:1; overflow-y:auto; padding:24px 32px 40px;
+  display:none;
+}
+.report-view.active { display:block; }
+.report-view::-webkit-scrollbar { width:4px; }
+.report-view::-webkit-scrollbar-thumb { background:#e0e0e0; border-radius:2px; }
+
+.report-hero {
+  background:linear-gradient(135deg, #F7F8FA, #F5F6FA);
+  border-radius:var(--radius); padding:32px;
+  text-align:center; margin-bottom:24px;
+  border:1.5px solid rgba(79,124,255,.12);
+}
+.report-hero .rh-badge {
+  display:inline-block; padding:4px 14px; border-radius:20px;
+  font-size:10px; font-weight:700; background:var(--accent-light);
+  color:var(--accent); letter-spacing:.5px; margin-bottom:14px;
+}
+.report-hero .rh-score {
+  font-size:64px; font-weight:800; color:var(--accent);
+  line-height:1; margin-bottom:8px;
+}
+.report-hero .rh-verdict { font-size:15px; color:var(--text2); }
+
+.report-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+.report-card {
+  background:var(--card); border-radius:var(--radius);
+  padding:20px; border:1px solid var(--border);
+}
+.report-card .rc-title {
+  font-size:13px; font-weight:700; margin-bottom:12px;
+  display:flex; align-items:center; gap:8px;
+}
+.report-card .rc-item {
+  font-size:12px; color:var(--text2); padding:5px 0;
+  line-height:1.5; display:flex; gap:6px;
+}
+.report-card .rc-item::before { content:'•'; color:var(--accent); flex-shrink:0; }
+
+.report-dims { margin-bottom:24px; }
+.report-dim {
+  display:flex; align-items:center; gap:14px; padding:10px 0;
+}
+.report-dim .rd-label { width:80px; font-size:13px; font-weight:600; color:var(--text); flex-shrink:0; }
+.report-dim .rd-bar-wrap { flex:1; height:6px; background:#f0f0f0; border-radius:3px; overflow:hidden; }
+.report-dim .rd-bar-fill { height:100%; border-radius:3px; transition:width 1s ease .2s; }
+.report-dim .rd-val { width:36px; text-align:right; font-size:13px; font-weight:700; flex-shrink:0; }
+
+.report-recs { margin-bottom:24px; }
+.report-rec {
+  padding:12px 16px; background:var(--card);
+  border-radius:10px; margin-bottom:8px;
+  border:1px solid var(--border); display:flex; align-items:center; gap:12px;
+  font-size:13px;
+}
+.report-rec .rr-priority {
+  padding:2px 8px; border-radius:6px; font-size:10px; font-weight:700;
+  text-transform:uppercase; flex-shrink:0;
+}
+
+.next-steps { display:flex; gap:12px; flex-wrap:wrap; }
+.next-step-card {
+  flex:1; min-width:180px; padding:16px;
+  background:var(--card); border-radius:12px;
+  border:1px solid var(--border); cursor:pointer;
+  transition:all .15s; text-decoration:none; color:inherit;
+  display:flex; align-items:center; gap:12px;
+}
+.next-step-card:hover { border-color:var(--accent); background:var(--accent-light); }
+.next-step-card .ns-icon { font-size:22px; flex-shrink:0; }
+.next-step-card .ns-info { flex:1; }
+.next-step-card .ns-label { font-size:13px; font-weight:600; color:var(--text); }
+.next-step-card .ns-desc { font-size:11px; color:var(--text3); margin-top:2px; }
+
+/* ====== Toast ====== */
+.toast {
+  position:fixed; bottom:32px; left:50%; transform:translateX(-50%);
+  background:var(--text); color:#fff; padding:10px 24px; border-radius:10px;
+  font-size:13px; z-index:9999; opacity:0; transition:opacity .3s;
+  pointer-events:none; box-shadow:0 8px 24px rgba(0,0,0,.15);
+}
+.toast.show { opacity:1; }
+
+/* ====== Responsive ====== */
+@media (max-width:900px) {
+  .workspace { flex-direction:column; }
+  .left-panel { width:100%; flex-shrink:1; height:auto; border-right:none; border-bottom:1px solid var(--border); padding:14px; }
+  .right-panel { height:0; flex:1; }
+  .msg-list { padding:16px; }
+  .input-area { padding:12px 16px; }
+  .report-view { padding:16px; }
+  .report-grid { grid-template-columns:1fr; }
+  .next-steps { flex-direction:column; }
+}
+</style>
+</head>
+<body>
+
+<!-- Aurora -->
+<div class="aurora-bg" id="auroraBg">
+  <div class="aurora-orb orb-a"></div>
+  <div class="aurora-orb orb-b"></div>
+  <div class="aurora-orb orb-c"></div>
+</div>
+
+<!-- Header -->
+<header class="header">
+  <a class="back" href="resume-match.html">← 返回匹配</a>
+  <div style="text-align:center;">
+    <div class="hd-title">AI模拟面试</div>
+    <div class="hd-sub" id="jdRef">加载中...</div>
+  </div>
+  <div style="width:80px;"></div>
+</header>
+
+<!-- Workspace -->
+<div class="workspace">
+  <!-- Left Panel -->
+  <div class="left-panel" id="leftPanel">
+    <div class="info-card" id="jdCard">
+      <div class="ic-label"><span class="ic-dot"></span>目标岗位</div>
+      <div class="ic-title" id="jdTitle">—</div>
+      <div class="ic-meta" id="jdMeta"></div>
+    </div>
+
+    <div class="info-card" id="profileCard">
+      <div class="ic-label"><span class="ic-dot"></span>能力画像</div>
+      <div id="profileContent"></div>
+    </div>
+
+    <div class="info-card" id="progressCard">
+      <div class="ic-label"><span class="ic-dot"></span>面试进度</div>
+      <div class="progress-round" id="progressRound">准备开始</div>
+      <div class="progress-label" id="progressLabel">等待AI面试官提问</div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
+      <div style="margin-top:14px;" id="liveScores"></div>
+    </div>
+  </div>
+
+  <!-- Right Panel: Chat Workspace -->
+  <div class="right-panel" id="rightPanel">
+    <!-- Messages -->
+    <div class="msg-list" id="msgList">
+      <div id="msgContainer"></div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-area" id="inputArea">
+      <textarea id="answerInput" placeholder="输入你的回答..." rows="1" disabled></textarea>
+      <button class="btn-send" id="btnSend" disabled>↑</button>
+    </div>
+
+    <!-- Report View (hidden initially) -->
+    <div class="report-view" id="reportView"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Scripts -->
+<script src="../src/jd-parser/skill-taxonomy.js"></script>
+<script src="../src/resume-matcher/resume-parser.js"></script>
+<script src="../src/resume-matcher/matcher.js"></script>
+<script src="../src/hr-interview/hr-interview.js"></script>
+<script>
+(function () {
+// ====== Helpers ======
+function $(id) { return document.getElementById(id); }
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function now() { const d = new Date(); return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0'); }
+
+// ====== State ======
+let session = null;
+let isProcessing = false;
+
+// ====== Load Data ======
+function loadData() {
+  let jdAnalysis = null;
+  let matchResult = null;
+
+  try {
+    const rawJD = localStorage.getItem('ai_jd_analysis');
+    if (rawJD) jdAnalysis = JSON.parse(rawJD);
+  } catch (e) {}
+  try {
+    const rawMatch = localStorage.getItem('ai_match_result');
+    if (rawMatch) matchResult = JSON.parse(rawMatch);
+  } catch (e) {}
+
+  if (!jdAnalysis && !matchResult) {
+    loadDemoData();
+  } else {
+    if (!matchResult) {
+      matchResult = buildMinimalMatchResult(jdAnalysis);
+    }
+    if (!jdAnalysis) {
+      jdAnalysis = matchResult._jdAnalysis || null;
+    }
+    initInterview(jdAnalysis, matchResult);
+  }
+}
+
+function buildMinimalMatchResult(jdAnalysis) {
+  const skills = jdAnalysis.skills || {};
+  const allSkills = [];
+  Object.entries(skills).forEach(([catKey, cat]) => {
+    (cat.keywords || []).forEach(kw => {
+      allSkills.push({ skill: kw, category: cat.label || catKey, color: cat.color || '#5a5f6e' });
+    });
+  });
+  return {
+    score: null,
+    verdict: '未匹配 — 建议先进行简历匹配',
+    verdictColor: '#5a5f6e',
+    strengths: allSkills.slice(0, 3),
+    gaps: allSkills.slice(3).map(s => ({ ...s, importance: 'important', suggestion: '建议学习提升' })),
+    suggestions: { resume: [], project: [], skill: ['建议先进行简历匹配获取精准分析'] },
+    stats: { totalJD: allSkills.length, matched: 0, unmatched: allSkills.length, extra: 0 },
+    _jdAnalysis: jdAnalysis
+  };
+}
+
+function loadDemoData() {
+  const jdAnalysis = {
+    skills: {
+      'ai-apps': { label: 'AI应用工具', color: '#eb2f96', keywords: ['ChatGPT', 'Claude', 'Midjourney'] },
+      'product-skills': { label: '产品能力', color: '#0f3460', keywords: ['PRD撰写', '用户研究', '产品设计', '需求分析'] }
+    },
+    direction: { primary: { id: 'ai-product', label: 'AI产品', icon: '🎯', color: '#4F7CFF', confidence: 0.85 } },
+    competencies: [
+      { name: 'AI产品思维', evidence: '对AI创新产品有强烈热情', importance: 'required' },
+      { name: '用户研究能力', evidence: '具备良好的产品思维和用户研究能力', importance: 'required' },
+      { name: 'PRD撰写', evidence: '协助完成PRD撰写与产品原型设计', importance: 'required' },
+      { name: '跨部门协作', evidence: '有较强的跨团队沟通协作能力', importance: 'preferred' }
+    ],
+    meta: { title: 'AI创新产品实习生', company: '米哈游', location: '上海', salary: '200-350元/天' }
+  };
+
+  const matchResult = {
+    score: 68,
+    verdict: '建议尝试投递',
+    verdictColor: '#4F7CFF',
+    strengths: [
+      { skill: 'ChatGPT', category: 'AI应用工具', color: '#eb2f96' },
+      { skill: 'Claude', category: 'AI应用工具', color: '#eb2f96' },
+      { skill: 'Midjourney', category: 'AI应用工具', color: '#eb2f96' }
+    ],
+    gaps: [
+      { skill: 'PRD撰写', category: '产品能力', color: '#0f3460', importance: 'critical', suggestion: '阅读优秀PRD范例，尝试撰写完整PRD' },
+      { skill: '用户研究', category: '产品能力', color: '#0f3460', importance: 'important', suggestion: '学习用户访谈方法，做一份用户调研报告' },
+      { skill: '需求分析', category: '产品能力', color: '#0f3460', importance: 'important', suggestion: '参与开源项目讨论，练习需求分析' },
+      { skill: '数据分析', category: '数据工程', color: '#52c41a', importance: 'nice-to-have', suggestion: '学习SQL和pandas' }
+    ],
+    stats: { totalJD: 15, matched: 5, unmatched: 10, extra: 2 }
+  };
+
+  initInterview(jdAnalysis, matchResult);
+}
+
+// ====== Init ======
+function initInterview(jdAnalysis, matchResult) {
+  session = window.HRInterview.initSession(jdAnalysis, matchResult);
+  updateLeftPanel();
+  updateJDRef();
+
+  // Welcome message
+  appendMessage('ai', `你好，我是今天的 AI 面试官 👋
+
+针对「<b>${session.meta.jobTitle}</b>」岗位，我将进行约 <b>${session.maxRounds} 轮</b>模拟面试，考察产品思维、AI理解、沟通表达等核心能力。
+
+准备好了吗？我们开始第一题。`);
+
+  // First question after delay
+  setTimeout(() => askNextQuestion(), 1200);
+}
+
+// ====== Left Panel ======
+function updateJDRef() {
+  $('jdRef').textContent = '岗位: ' + (session.meta.jobTitle || '已加载');
+}
+
+function updateLeftPanel() {
+  const p = session.candidateProfile;
+
+  // JD Card
+  $('jdTitle').textContent = session.meta.jobTitle;
+  $('jdMeta').textContent = [session.meta.company, session.meta.directionLabel].filter(Boolean).join(' · ');
+
+  // Profile
+  const strChips = p.strengths.map(s => `<span class="cap-chip" style="border-color:${s.color};color:${s.color};">✓ ${s.skill}</span>`).join('');
+  const gapChips = p.gaps.slice(0, 5).map(g => `<span class="cap-chip">${g.skill}</span>`).join('');
+  $('profileContent').innerHTML = `
+    <div class="cap-row">
+      <span class="cap-tag" style="background:#ecfdf5;color:var(--success);">${p.strengths.length}项优势</span>
+      <span style="color:var(--text2);">匹配度 <b style="color:#4F7CFF;">${p.matchScore != null ? p.matchScore + '%' : '--'}</b></span>
+    </div>
+    <div class="cap-list">${strChips}</div>
+    <div style="margin-top:10px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px;">关键差距</div>
+    <div class="cap-list">${gapChips}</div>`;
+}
+
+function updateProgress() {
+  const total = session.maxRounds;
+  const done = session.rounds.filter(r => r.answer).length;
+  const pct = Math.round((done / total) * 100);
+
+  $('progressRound').textContent = `第 ${Math.min(done + 1, total)}/${total} 轮`;
+  $('progressLabel').textContent = done === 0 ? '等待AI面试官提问' : done >= total ? '面试即将结束' : `${total - done} 轮剩余`;
+  $('progressBar').style.width = pct + '%';
+
+  // Live scores
+  updateLiveScores();
+}
+
+function updateLiveScores() {
+  const completed = session.rounds.filter(r => r.answer && r.analysis);
+  if (completed.length === 0) {
+    $('liveScores').innerHTML = '<div style="font-size:10px;color:var(--text3);">完成第一轮后显示评分</div>';
+    return;
+  }
+
+  const latest = completed[completed.length - 1];
+  const scores = latest.analysis.dimensionScores;
+  const dims = [
+    { key: 'productThinking', label: '产品思维', color: '#4F7CFF' },
+    { key: 'aiUnderstanding', label: 'AI理解', color: '#6B8AFF' },
+    { key: 'communication', label: '沟通表达', color: '#19B37D' },
+    { key: 'projectAnalysis', label: '项目分析', color: '#f59e0b' },
+    { key: 'logicAbility', label: '逻辑能力', color: '#ef4444' }
+  ];
+
+  $('liveScores').innerHTML = dims.map(d => `
+    <div class="dim-row">
+      <span class="dr-label">${d.label}</span>
+      <div class="dr-bar-wrap"><div class="dr-bar-fill" style="width:${scores[d.key]}%;background:${d.color}"></div></div>
+      <span class="dr-val" style="color:${d.color};">${Math.round(scores[d.key])}</span>
+    </div>
+  `).join('');
+}
+
+// ====== Ask Question ======
+async function askNextQuestion() {
+  const q = window.HRInterview.getNextQuestion(session);
+  updateProgress();
+
+  // Aurora speed up slightly
+  $('auroraBg').classList.add('analyzing');
+  await sleep(400);
+  $('auroraBg').classList.remove('analyzing');
+
+  // Show question
+  const typeLabels = {
+    'behavioral': '行为面试',
+    'product-design': '产品设计',
+    'case-study': '案例分析',
+    'situational': '情景模拟',
+    'technical': '技术考察'
+  };
+
+  appendMessage('ai',
+    `<span style="font-size:10px;color:var(--accent);font-weight:600;text-transform:uppercase;letter-spacing:.3px;">${typeLabels[q.type] || q.type} · ${q.targetCompetency}</span><br><br>${q.text}`
+  );
+
+  // Enable input
+  enableInput();
+  scrollToBottom();
+}
+
+// ====== Submit Answer ======
+async function handleSubmit() {
+  if (isProcessing) return;
+  const answer = $('answerInput').value.trim();
+  if (answer.length < 5) { showToast('请详细描述你的回答，至少2-3句话'); return; }
+
+  isProcessing = true;
+  disableInput();
+
+  // Show user message
+  appendMessage('user', answer);
+  $('answerInput').value = '';
+  scrollToBottom();
+
+  // Analyzing...
+  const indicator = showAnalyzing();
+
+  // Step through analysis phases
+  const steps = [
+    { text: '正在分析回答逻辑...', delay: 300 },
+    { text: '正在评估产品思维...', delay: 400 },
+    { text: '正在检查表达结构...', delay: 300 },
+    { text: '正在生成优化建议...', delay: 400 }
+  ];
+
+  $('auroraBg').classList.add('analyzing');
+
+  for (const step of steps) {
+    indicator.textContent = step.text;
+    await sleep(step.delay);
+  }
+
+  // Run analysis
+  const roundIndex = session.rounds.length - 1;
+  const round = window.HRInterview.analyzeAnswer(session, roundIndex, answer);
+
+  $('auroraBg').classList.remove('analyzing');
+
+  // Remove indicator
+  indicator.parentElement.style.display = 'none';
+
+  if (round.analysis.error) {
+    appendMessage('ai', round.analysis.message);
+    enableInput();
+    isProcessing = false;
+    scrollToBottom();
+    return;
+  }
+
+  // Show analysis card
+  renderAnalysisCard(round);
+  updateProgress();
+  scrollToBottom();
+
+  await sleep(600);
+
+  // Follow-up or next question
+  if (round.hasFollowUp && round.followUp) {
+    appendFollowUp(round.followUp);
+    enableInput();
+    scrollToBottom();
+  } else if (session.currentRound >= session.maxRounds) {
+    // Finish interview
+    await sleep(500);
+    finishInterview();
+  } else {
+    await sleep(800);
+    askNextQuestion();
+  }
+
+  isProcessing = false;
+}
+
+// ====== Render Analysis Card ======
+function renderAnalysisCard(round) {
+  const a = round.analysis;
+  const dims = a.dimensions;
+  const dimKeys = ['logic', 'structure', 'productThinking', 'aiUnderstanding', 'authenticity', 'communication'];
+  const dimLabels = { logic:'逻辑结构', structure:'表达结构', productThinking:'产品思维', aiUnderstanding:'AI理解', authenticity:'项目真实性', communication:'沟通表达' };
+  const dimColors = { logic:'#4F7CFF', structure:'#6B8AFF', productThinking:'#f59e0b', aiUnderstanding:'#19B37D', authenticity:'#3b82f6', communication:'#ef4444' };
+
+  const dimHTML = dimKeys.map((key, i) => {
+    const d = dims[key];
+    if (!d) return '';
+    const pct = (d.score / 5) * 100;
+    return `<div class="a-dim">
+      <div class="ad-header"><span class="ad-label">${dimLabels[key]}</span><span class="ad-score" style="color:${dimColors[key]};">${d.score}/5</span></div>
+      <div class="ad-bar-wrap"><div class="ad-bar-fill" style="width:${pct}%;background:${dimColors[key]};"></div></div>
+      <div class="ad-comment">${d.comment}</div>
+    </div>`;
+  }).join('');
+
+  const suggHTML = a.suggestions.map(s => `<div class="as-item">${s}</div>`).join('');
+
+  const posHTML = (a.positivePoints || []).map(p => `<div class="ap-item">${p}</div>`).join('');
+
+  const card = document.createElement('div');
+  card.className = 'analysis-card';
+  card.innerHTML = `
+    <div class="ac-header">📊 AI分析反馈</div>
+    <div class="ac-body">
+      ${dimHTML}
+      ${posHTML ? `<div class="a-positive">${posHTML}</div>` : ''}
+      <div class="a-sugg"><div class="as-label">优化建议</div>${suggHTML}</div>
+    </div>`;
+
+  $('msgContainer').appendChild(card);
+
+  // Animate in
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { card.classList.add('visible'); });
+  });
+}
+
+// ====== Follow-up ======
+function appendFollowUp(followUp) {
+  const div = document.createElement('div');
+  div.className = 'follow-up-msg';
+  div.innerHTML = `
+    <div class="fu-label">🔍 AI追问</div>
+    <div class="fu-text">${followUp.text}</div>
+    <div class="fu-reason">追问原因：${followUp.reason}</div>`;
+  $('msgContainer').appendChild(div);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { div.classList.add('visible'); });
+  });
+}
+
+// ====== Finish Interview ======
+async function finishInterview() {
+  appendMessage('ai',
+    `面试环节到此结束。我已经根据你在 <b>${session.currentRound}</b> 轮面试中的表现，生成了完整的评估报告。请查看下方报告。`
+  );
+
+  scrollToBottom();
+  await sleep(800);
+
+  const report = window.HRInterview.generateReport(session);
+  renderReport(report);
+}
+
+function renderReport(report) {
+  if (report.error) { showToast(report.message); return; }
+
+  // Hide chat, show report
+  $('msgList').style.display = 'none';
+  $('inputArea').style.display = 'none';
+  $('reportView').classList.add('active');
+
+  const dims = [
+    { key: 'productThinking', label: '产品思维', color: '#4F7CFF' },
+    { key: 'aiUnderstanding', label: 'AI理解', color: '#6B8AFF' },
+    { key: 'communication', label: '沟通表达', color: '#19B37D' },
+    { key: 'projectAnalysis', label: '项目分析', color: '#f59e0b' },
+    { key: 'logicAbility', label: '逻辑能力', color: '#ef4444' }
+  ];
+
+  const dimHTML = dims.map(d => {
+    const score = report.dimensionScores[d.key] || 0;
+    return `<div class="report-dim">
+      <span class="rd-label">${d.label}</span>
+      <div class="rd-bar-wrap"><div class="rd-bar-fill" style="width:${score}%;background:${d.color};"></div></div>
+      <span class="rd-val" style="color:${d.color};">${Math.round(score)}</span>
+    </div>`;
+  }).join('');
+
+  const strengthItems = report.strengths.map(s => `<div class="rc-item">${s}</div>`).join('');
+  const weaknessItems = report.weaknesses.map(w => `<div class="rc-item">${w}</div>`).join('');
+  const mistakeItems = report.commonMistakes.map(m => `<div class="rc-item">${m}</div>`).join('');
+
+  const recHTML = report.recommendations.map(r => `
+    <div class="report-rec">
+      <span class="rr-priority" style="background:${r.priority === 'high' ? '#fef2f2' : '#fffbeb'};color:${r.priority === 'high' ? '#ef4444' : '#f59e0b'};">${r.priority === 'high' ? '优先' : '建议'}</span>
+      <span><b>${r.area}：</b>${r.action}</span>
+    </div>
+  `).join('');
+
+  const stepsHTML = report.nextSteps.map(s => `
+    <div class="next-step-card" ${s.action ? `onclick="handleReportAction('${s.action}')"` : ''}>
+      <span class="ns-icon">${s.icon}</span>
+      <div class="ns-info">
+        <div class="ns-label">${s.label}</div>
+        <div class="ns-desc">${s.desc}</div>
+      </div>
+    </div>
+  `).join('');
+
+  $('reportView').innerHTML = `
+    <div class="report-hero">
+      <div class="rh-badge">AI Interview Report</div>
+      <div class="rh-score">${report.totalScore}</div>
+      <div class="rh-verdict">综合面试评分 · ${report.roundsCompleted}/${report.totalRounds} 轮完成</div>
+    </div>
+
+    <div class="report-dims">${dimHTML}</div>
+
+    <div class="report-grid">
+      <div class="report-card">
+        <div class="rc-title">✅ 优势能力</div>
+        ${strengthItems || '<div class="rc-item">持续练习以提升面试技巧</div>'}
+      </div>
+      <div class="report-card">
+        <div class="rc-title">⚠ 核心问题</div>
+        ${report.coreIssues.map(i => `<div class="rc-item">${i}</div>`).join('') || '<div class="rc-item">未发现明显问题</div>'}
+      </div>
+    </div>
+
+    <div class="report-grid">
+      <div class="report-card">
+        <div class="rc-title">📌 高频失误</div>
+        ${mistakeItems}
+      </div>
+      <div class="report-card">
+        <div class="rc-title">🎯 待提升方向</div>
+        ${weaknessItems}
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;font-size:14px;font-weight:700;">💡 推荐优化方向</div>
+    <div class="report-recs">${recHTML}</div>
+
+    <div style="margin-bottom:12px;font-size:14px;font-weight:700;">👉 下一步建议</div>
+    <div class="next-steps">${stepsHTML}</div>
+  `;
+
+  // Animate report elements
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.report-dim .rd-bar-fill').forEach((el, i) => {
+      setTimeout(() => { el.style.width = el.style.width; }, i * 120);
+    });
+  });
+}
+
+// ====== Message Rendering ======
+function appendMessage(type, text) {
+  const div = document.createElement('div');
+  if (type === 'ai') {
+    div.className = 'ai-msg';
+    div.innerHTML = `
+      <div class="ai-avatar">🤖</div>
+      <div>
+        <div class="ai-bubble">${text}</div>
+        <div class="ai-time">${now()}</div>
+      </div>`;
+  } else {
+    div.className = 'user-msg';
+    div.innerHTML = `
+      <div class="u-avatar">👤</div>
+      <div>
+        <div class="u-bubble">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      </div>`;
+  }
+  $('msgContainer').appendChild(div);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { div.classList.add('visible'); });
+  });
+}
+
+function showAnalyzing() {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'analyzing-indicator show';
+  wrapper.innerHTML = '<span class="ai-spinner"></span><span id="analyzingText">正在分析回答...</span>';
+  $('msgContainer').appendChild(wrapper);
+  scrollToBottom();
+  return document.getElementById('analyzingText');
+}
+
+// ====== Input ======
+function enableInput() {
+  $('answerInput').disabled = false;
+  $('btnSend').disabled = false;
+  $('answerInput').focus();
+}
+
+function disableInput() {
+  $('answerInput').disabled = true;
+  $('btnSend').disabled = true;
+}
+
+function scrollToBottom() {
+  const list = $('msgList');
+  setTimeout(() => { list.scrollTop = list.scrollHeight; }, 100);
+}
+
+// ====== Events ======
+$('btnSend').addEventListener('click', handleSubmit);
+$('answerInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    handleSubmit();
+  }
+});
+
+// ====== Report Actions ======
+window.handleReportAction = function(action) {
+  if (action === 'learning-path') {
+    if (session && session._jdAnalysis) {
+      localStorage.setItem('ai_jd_analysis', JSON.stringify(session._jdAnalysis));
+    }
+    window.location.href = 'learning-path.html';
+  }
+};
+
+// ====== Init ======
+loadData();
+})();
+</script>
+</body>
+</html>

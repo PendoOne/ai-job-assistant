@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI成长路线图 — AI求职助手</title>
+<style>
+/* ====== Design Tokens ====== */
+:root {
+  --bg: #fafbfc;
+  --card: #fff;
+  --text: #1a1a2e;
+  --text2: #5a5f6e;
+  --text3: #9499a5;
+  --accent: #4F7CFF;
+  --accent-light: #EEF3FF;
+  --success: #19B37D;
+  --warning: #f59e0b;
+  --border: #e8eaef;
+  --radius: 16px;
+  --radius-sm: 12px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:var(--font); background:var(--bg); color:var(--text);
+  min-height:100vh; line-height:1.6; overflow-x:hidden;
+}
+
+/* ====== Subtle Aurora ====== */
+.aurora-bg {
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  overflow:hidden; opacity:.25; transition:opacity 2s;
+}
+.aurora-orb {
+  position:absolute; border-radius:50%;
+  filter:blur(160px);
+}
+.orb-a {
+  width:500px; height:500px; background:#4F7CFF;
+  top:-10%; right:-8%;
+  animation:aurora-a 45s ease-in-out infinite;
+}
+.orb-b {
+  width:450px; height:450px; background:#6B8AFF;
+  bottom:-12%; left:-8%;
+  animation:aurora-b 50s ease-in-out infinite;
+}
+.orb-c {
+  width:400px; height:400px; background:#b8b5e0;
+  top:40%; left:30%;
+  animation:aurora-c 42s ease-in-out infinite;
+}
+@keyframes aurora-a {
+  0%,100% { transform:translate(0,0) scale(1); }
+  25% { transform:translate(40px,-30px) scale(1.05); }
+  50% { transform:translate(-20px,25px) scale(.96); }
+  75% { transform:translate(30px,-10px) scale(1.03); }
+}
+@keyframes aurora-b {
+  0%,100% { transform:translate(0,0) scale(1); }
+  33% { transform:translate(-30px,20px) scale(1.04); }
+  66% { transform:translate(25px,-20px) scale(.97); }
+}
+@keyframes aurora-c {
+  0%,100% { transform:translate(0,0) scale(1); }
+  20% { transform:translate(-25px,-20px) scale(1.03); }
+  50% { transform:translate(20px,30px) scale(.95); }
+  80% { transform:translate(-15px,10px) scale(1.02); }
+}
+
+/* ====== Header ====== */
+.header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px 24px; position:sticky; top:0; z-index:100;
+  background:rgba(255,255,255,.7); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.header .back {
+  padding:6px 14px; border-radius:8px; font-size:12px;
+  cursor:pointer; border:1px solid var(--border);
+  background:var(--card); color:var(--text2);
+  font-family:var(--font); transition:all .15s;
+  text-decoration:none; display:flex; align-items:center; gap:6px;
+}
+.header .back:hover { border-color:var(--accent); color:var(--accent); }
+.header .hd-center { text-align:center; }
+.header .hd-title { font-size:15px; font-weight:700; }
+.header .hd-sub { font-size:11px; color:var(--text3); }
+
+/* ====== Main ====== */
+.main {
+  max-width:780px; margin:0 auto; padding:0 20px 80px;
+  position:relative; z-index:1;
+}
+
+/* ====== AI Summary Card ====== */
+.summary-card {
+  background:var(--card); border-radius:var(--radius);
+  padding:32px; margin-top:32px; margin-bottom:36px;
+  border:1px solid var(--border);
+  box-shadow:0 1px 3px rgba(0,0,0,.03);
+  opacity:0; transform:translateY(12px);
+  transition:all .6s cubic-bezier(.4,0,.2,1);
+}
+.summary-card.visible { opacity:1; transform:translateY(0); }
+
+.summary-card .sc-badge {
+  display:inline-block; padding:4px 12px; border-radius:20px;
+  font-size:10px; font-weight:600; letter-spacing:.5px;
+  background:var(--accent-light); color:var(--accent);
+  margin-bottom:16px;
+}
+.summary-card .sc-title {
+  font-size:17px; font-weight:700; line-height:1.7;
+  color:var(--text); margin-bottom:16px;
+}
+.summary-card .sc-gaps {
+  display:flex; flex-direction:column; gap:8px;
+  margin-bottom:20px; padding-left:4px;
+}
+.summary-card .sc-gap-item {
+  display:flex; align-items:center; gap:12px;
+  font-size:14px; color:var(--text2);
+}
+.summary-card .sc-gap-num {
+  width:24px; height:24px; border-radius:6px;
+  background:var(--accent-light); color:var(--accent);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; flex-shrink:0;
+}
+.summary-card .sc-gap-reason {
+  font-size:12px; color:var(--text3); margin-left:36px;
+  line-height:1.5;
+}
+
+.ai-insight {
+  margin-top:20px; padding:14px 18px;
+  background:var(--accent-light); border-radius:10px;
+  font-size:13px; color:var(--text2); line-height:1.7;
+  border-left:3px solid var(--accent);
+}
+.ai-insight::before {
+  content:'AI Insight · ';
+  font-size:10px; font-weight:700; color:var(--accent);
+  text-transform:uppercase; letter-spacing:.5px;
+}
+
+.est-weeks {
+  margin-top:16px; font-size:12px; color:var(--text3);
+  display:flex; align-items:center; gap:6px;
+}
+
+/* ====== Timeline ====== */
+.timeline {
+  position:relative; padding-left:40px;
+}
+.timeline::before {
+  content:''; position:absolute; left:10px; top:12px;
+  width:2px; height:0;
+  background:var(--border);
+  transition:height 1s ease .3s;
+}
+.timeline.drawn::before { height:calc(100% - 24px); }
+
+/* Phase Card */
+.phase-wrapper {
+  position:relative; margin-bottom:32px;
+  opacity:0; transform:translateY(16px);
+  transition:all .6s cubic-bezier(.4,0,.2,1);
+}
+.phase-wrapper.visible { opacity:1; transform:translateY(0); }
+
+.phase-node {
+  position:absolute; left:-40px; top:20px;
+  width:22px; height:22px; border-radius:50%;
+  border:2px solid var(--border);
+  background:var(--card);
+  z-index:2;
+  transition:all .3s;
+}
+.phase-node .pn-dot {
+  width:10px; height:10px; border-radius:50%;
+  background:var(--accent);
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%) scale(0);
+  transition:transform .3s .1s;
+}
+.phase-wrapper.visible .phase-node { border-color:var(--accent); }
+.phase-wrapper.visible .phase-node .pn-dot { transform:translate(-50%,-50%) scale(1); }
+
+.phase-card {
+  background:var(--card); border-radius:var(--radius);
+  border:1px solid var(--border);
+  box-shadow:0 1px 3px rgba(0,0,0,.03);
+  overflow:hidden;
+}
+.phase-card .pc-header {
+  padding:20px 24px 0; display:flex;
+  justify-content:space-between; align-items:flex-start;
+}
+.phase-card .pc-title {
+  font-size:16px; font-weight:700; color:var(--text);
+}
+.phase-card .pc-duration {
+  font-size:11px; color:var(--text3);
+  padding:3px 10px; border-radius:10px;
+  background:#f5f5f5; white-space:nowrap;
+  margin-top:2px;
+}
+
+.phase-card .pc-body { padding:20px 24px 24px; }
+
+.phase-section { margin-bottom:16px; }
+.phase-section:last-child { margin-bottom:0; }
+.phase-section .ps-label {
+  font-size:10px; font-weight:700; color:var(--text3);
+  text-transform:uppercase; letter-spacing:.5px;
+  margin-bottom:8px; display:flex; align-items:center; gap:6px;
+}
+.phase-section .ps-label::after {
+  content:''; flex:1; height:1px; background:#f0f0f0;
+}
+
+/* Goals */
+.goal-list { display:flex; flex-wrap:wrap; gap:6px; }
+.goal-tag {
+  padding:4px 12px; border-radius:8px;
+  font-size:12px; color:var(--text2);
+  background:#f8f9fb; border:1px solid #f0f0f0;
+}
+
+/* Skills */
+.skill-list { display:flex; flex-wrap:wrap; gap:6px; }
+.skill-item {
+  padding:5px 14px; border-radius:20px;
+  font-size:12px; font-weight:500;
+  display:flex; align-items:center; gap:6px;
+}
+.skill-item .si-dot {
+  width:6px; height:6px; border-radius:50%;
+}
+.skill-tip {
+  font-size:11px; color:var(--text3); margin-top:10px;
+  padding-left:4px; line-height:1.5;
+}
+
+/* Projects */
+.project-item {
+  padding:12px 16px; margin-bottom:8px;
+  background:#fafbfc; border-radius:10px;
+  border:1px solid #f0f0f0;
+}
+.project-item:last-child { margin-bottom:0; }
+.project-item .pj-name {
+  font-size:13px; font-weight:600;
+  color:var(--text); margin-bottom:4px;
+}
+.project-item .pj-desc {
+  font-size:12px; color:var(--text2);
+  line-height:1.5; margin-bottom:4px;
+}
+.project-item .pj-why {
+  font-size:11px; color:var(--accent);
+  font-weight:500;
+}
+
+/* AI Reason */
+.ai-reason {
+  padding:14px 16px; background:var(--accent-light);
+  border-radius:10px; font-size:13px;
+  color:var(--text2); line-height:1.8;
+  position:relative;
+}
+.ai-reason .ar-label {
+  font-size:10px; font-weight:700; color:var(--accent);
+  text-transform:uppercase; letter-spacing:.5px;
+  margin-bottom:4px;
+}
+
+/* Outcome */
+.outcome-text {
+  font-size:13px; color:var(--text2);
+  padding:6px 0; line-height:1.7;
+}
+
+/* ====== Resources ====== */
+.resources-section {
+  margin-top:12px; padding-top:32px;
+  border-top:1px solid var(--border);
+  opacity:0; transform:translateY(12px);
+  transition:all .6s cubic-bezier(.4,0,.2,1);
+}
+.resources-section.visible { opacity:1; transform:translateY(0); }
+.resources-section .rs-title {
+  font-size:17px; font-weight:700; margin-bottom:20px;
+  display:flex; align-items:center; gap:8px;
+}
+.resource-grid {
+  display:grid; grid-template-columns:repeat(2, 1fr);
+  gap:12px;
+}
+.resource-card {
+  background:var(--card); border-radius:var(--radius-sm);
+  padding:16px; border:1px solid var(--border);
+  transition:all .15s; cursor:pointer;
+}
+.resource-card:hover {
+  border-color:var(--accent);
+  box-shadow:0 4px 12px rgba(0,0,0,.04);
+  transform:translateY(-1px);
+}
+.resource-card .rc-type {
+  font-size:9px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.5px; padding:2px 6px; border-radius:4px;
+  display:inline-block; margin-bottom:8px;
+}
+.rc-type.video { background:#fef2f2; color:#ef4444; }
+.rc-type.article { background:#EEF3FF; color:var(--accent); }
+.rc-type.course { background:#ecfdf5; color:var(--success); }
+.rc-type.project { background:#fffbeb; color:#d97706; }
+.resource-card .rc-title {
+  font-size:13px; font-weight:600;
+  color:var(--text); margin-bottom:4px;
+}
+.resource-card .rc-desc {
+  font-size:11px; color:var(--text3); line-height:1.5;
+  margin-bottom:4px;
+}
+.resource-card .rc-skill {
+  font-size:10px; color:var(--accent);
+  font-weight:500;
+}
+
+/* ====== Next Steps ====== */
+.next-steps-section {
+  margin-top:40px;
+  opacity:0; transform:translateY(16px);
+  transition: opacity .5s cubic-bezier(.4,0,.2,1), transform .5s cubic-bezier(.4,0,.2,1);
+}
+.next-steps-section.visible { opacity:1; transform:translateY(0); }
+.ns-title {
+  font-size:16px; font-weight:650; color:var(--text);
+  margin-bottom:16px;
+}
+.ns-grid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.ns-card {
+  background:var(--card-bg); border:1px solid var(--border);
+  border-radius:12px; padding:20px; cursor:pointer;
+  transition:all .2s;
+  display:flex; align-items:center; gap:14px;
+}
+.ns-card:hover {
+  border-color:var(--accent); box-shadow:0 4px 16px rgba(99,102,241,.08);
+  transform:translateY(-1px);
+}
+.ns-icon {
+  width:40px; height:40px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; flex-shrink:0;
+}
+.ns-info { flex:1; }
+.ns-label { font-size:14px; font-weight:600; color:var(--text); margin-bottom:2px; }
+.ns-desc { font-size:12px; color:var(--text3); line-height:1.5; }
+.ns-arrow { color:var(--text3); font-size:14px; transition:transform .2s; }
+.ns-card:hover .ns-arrow { transform:translateX(3px); }
+
+/* ====== Toast ====== */
+.toast {
+  position:fixed; bottom:32px; left:50%; transform:translateX(-50%);
+  background:var(--text); color:#fff; padding:10px 24px; border-radius:10px;
+  font-size:13px; z-index:9999; opacity:0; transition:opacity .3s;
+  pointer-events:none; box-shadow:0 8px 24px rgba(0,0,0,.15);
+}
+.toast.show { opacity:1; }
+
+/* ====== Responsive ====== */
+@media (max-width:768px) {
+  .main { padding:0 14px 60px; }
+  .timeline { padding-left:32px; }
+  .phase-node { left:-32px; }
+  .summary-card { padding:24px 20px; }
+  .phase-card .pc-header { padding:16px 20px 0; }
+  .phase-card .pc-body { padding:16px 20px 20px; }
+  .resource-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- Subtle Aurora -->
+<div class="aurora-bg">
+  <div class="aurora-orb orb-a"></div>
+  <div class="aurora-orb orb-b"></div>
+  <div class="aurora-orb orb-c"></div>
+</div>
+
+<!-- Header -->
+<header class="header">
+  <a class="back" href="resume-match.html">← 返回匹配</a>
+  <div class="hd-center">
+    <div class="hd-title">AI成长路线图</div>
+    <div class="hd-sub" id="jdRef">加载中...</div>
+  </div>
+  <div style="width:80px;"></div>
+</header>
+
+<!-- Main -->
+<div class="main" id="mainContent">
+  <!-- AI Summary will render here -->
+  <div id="summaryArea"></div>
+  <!-- Timeline will render here -->
+  <div id="timelineArea"></div>
+  <!-- Resources will render here -->
+  <div id="resourcesArea"></div>
+  <!-- Next Steps will render here -->
+  <div id="nextStepsArea"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Scripts -->
+<script src="../src/jd-parser/skill-taxonomy.js"></script>
+<script src="../src/resume-matcher/resume-parser.js"></script>
+<script src="../src/resume-matcher/matcher.js"></script>
+<script src="../src/learning-path/learning-path.js"></script>
+<script>
+(function () {
+// ====== Helpers ======
+function $(id) { return document.getElementById(id); }
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ====== Load Data ======
+function loadData() {
+  let jdAnalysis = null;
+  let matchResult = null;
+
+  try {
+    const rawJD = localStorage.getItem('ai_jd_analysis');
+    if (rawJD) jdAnalysis = JSON.parse(rawJD);
+  } catch (e) {}
+
+  try {
+    const rawMatch = localStorage.getItem('ai_match_result');
+    if (rawMatch) matchResult = JSON.parse(rawMatch);
+  } catch (e) {}
+
+  if (!jdAnalysis || !matchResult) {
+    loadDemoData();
+  } else {
+    renderAll(jdAnalysis, matchResult);
+  }
+}
+
+function loadDemoData() {
+  const jdAnalysis = {
+    skills: {
+      'ai-apps': { label: 'AI应用工具', color: '#eb2f96', keywords: ['ChatGPT', 'Claude', 'Midjourney'] },
+      'ai-video': { label: 'AI视频生成', color: '#fa541c', keywords: ['Runway', 'Pika', 'Kling'] },
+      'design-tools': { label: '设计工具', color: '#13c2c2', keywords: ['AE', 'Premiere', '剪映'] },
+      'product-skills': { label: '产品能力', color: '#0f3460', keywords: ['PRD撰写', '用户研究', '产品设计'] },
+      'soft-skills': { label: '软技能', color: '#1a1a2e', keywords: ['跨部门沟通', '创意策划', '逻辑思维', '项目推进'] },
+      'domain-knowledge': { label: '领域知识', color: '#722ed1', keywords: ['游戏理解'] }
+    },
+    direction: { primary: { id: 'aigc-design', label: 'AIGC/视频/设计', icon: '🎨', color: '#eb2f96', confidence: 0.9 } },
+    competencies: [
+      { name: 'AI视频工具使用', evidence: '使用Runway、Pika、可灵等工具', importance: 'required' },
+      { name: '创意策划能力', evidence: '有较强的创意策划能力和视觉审美', importance: 'required' },
+      { name: 'ComfyUI工作流', evidence: '熟练使用ComfyUI搭建AI工作流', importance: 'required' }
+    ],
+    meta: { title: 'AIGC视频生成实习生', company: '某头部游戏公司', location: '北京', salary: '250-400元/天' }
+  };
+
+  const matchResult = {
+    score: 62,
+    verdict: '可尝试，建议针对性提升',
+    verdictColor: '#f59e0b',
+    strengths: [
+      { skill: 'Midjourney', category: 'AI应用工具', color: '#eb2f96' },
+      { skill: 'ChatGPT', category: 'AI应用工具', color: '#eb2f96' },
+      { skill: '剪映', category: '设计工具', color: '#13c2c2' }
+    ],
+    gaps: [
+      { skill: 'ComfyUI', category: 'AI视频生成', color: '#fa541c', importance: 'critical', suggestion: '下载ComfyUI，参考社区工作流模板进行实践' },
+      { skill: '创意策划', category: '软技能', color: '#1a1a2e', importance: 'important', suggestion: '每周完成一个创意作品，建立灵感收集和策划文档习惯' },
+      { skill: 'AE', category: '设计工具', color: '#13c2c2', importance: 'important', suggestion: '从基础动画和合成开始，学习常用的特效和表达式' },
+      { skill: 'PRD撰写', category: '产品能力', color: '#0f3460', importance: 'nice-to-have', suggestion: '阅读优秀PRD范例，尝试为熟悉的产品撰写完整PRD' },
+      { skill: 'Prompt Engineering', category: 'Prompt工程', color: '#2f54eb', importance: 'critical', suggestion: '学习思维链和少样本提示等核心技巧' }
+    ],
+    extraSkills: [{ name: 'Python', categoryLabel: '编程语言', color: '#2f54eb' }],
+    suggestions: {
+      resume: ['将AI工具相关技能放在简历前1/3位置', 'ComfyUI可短期学习后在简历中注明'],
+      project: ['做一个ComfyUI工作流项目放在GitHub上', '尝试将AI视频工具组合在一个综合项目中'],
+      skill: ['优先学习ComfyUI、Prompt Engineering（约2-4周）', '建议每天投入1-2小时系统性学习']
+    },
+    stats: { totalJD: 12, matched: 3, unmatched: 9, extra: 1 }
+  };
+
+  renderAll(jdAnalysis, matchResult);
+}
+
+// ====== Render All ======
+function renderAll(jdAnalysis, matchResult) {
+  // Update header
+  const meta = jdAnalysis.meta || {};
+  const dirLabel = (jdAnalysis.direction && jdAnalysis.direction.primary)
+    ? jdAnalysis.direction.primary.label : '';
+  $('jdRef').textContent = '基于: ' + (meta.title || '岗位分析');
+
+  // Generate roadmap
+  const roadmap = window.LearningPath.generate(jdAnalysis, matchResult);
+
+  renderSummary(roadmap);
+  renderTimeline(roadmap);
+  renderResources(roadmap);
+  renderNextSteps();
+
+  // Stagger animations
+  animateAll();
+}
+
+// ====== Summary ======
+function renderSummary(roadmap) {
+  const s = roadmap.summary;
+  const gaps = s.topGaps;
+
+  const gapItems = gaps.map((g, i) => `
+    <div>
+      <div class="sc-gap-item">
+        <span class="sc-gap-num">${i + 1}</span>
+        <span>${g.skill}<span style="font-size:11px;color:var(--text3);margin-left:8px;">${g.category}</span></span>
+      </div>
+      <div class="sc-gap-reason">${g.reason}</div>
+    </div>
+  `).join('');
+
+  $('summaryArea').innerHTML = `
+    <div class="summary-card" id="summaryCard">
+      <div class="sc-badge">AI Growth Diagnosis</div>
+      <div class="sc-title">${s.title}</div>
+      <div class="sc-gaps">${gapItems}</div>
+      <div class="ai-insight">${s.aiInsight}</div>
+      <div class="est-weeks">
+        <span style="font-size:16px;">⏱</span>
+        预计学习周期：<strong>${s.estimatedWeeks}</strong>（可根据个人进度调整）
+      </div>
+    </div>`;
+}
+
+// ====== Timeline ======
+function renderTimeline(roadmap) {
+  const phases = roadmap.phases;
+
+  const html = phases.map((phase, i) => `
+    <div class="phase-wrapper" id="phase${i}">
+      <div class="phase-node"><div class="pn-dot"></div></div>
+      <div class="phase-card">
+        <div class="pc-header">
+          <div class="pc-title">${phase.title}</div>
+          <div class="pc-duration">⏱ ${phase.duration}</div>
+        </div>
+        <div class="pc-body">
+          <!-- Goals -->
+          <div class="phase-section">
+            <div class="ps-label">学习目标</div>
+            <div class="goal-list">
+              ${phase.goals.map(g => `<span class="goal-tag">${g}</span>`).join('')}
+            </div>
+          </div>
+
+          <!-- Skills -->
+          ${phase.skills.length > 0 ? `
+          <div class="phase-section">
+            <div class="ps-label">推荐技能</div>
+            <div class="skill-list">
+              ${phase.skills.map(sk => `
+                <span class="skill-item" style="background:${getSkillBg(sk.priority)};color:${getSkillColor(sk.priority)};">
+                  <span class="si-dot" style="background:${getSkillColor(sk.priority)};"></span>
+                  ${sk.name}
+                </span>
+              `).join('')}
+            </div>
+            ${phase.skills[0] ? `<div class="skill-tip">💡 ${phase.skills[0].learningTip}</div>` : ''}
+          </div>
+          ` : ''}
+
+          <!-- Projects -->
+          ${phase.projects.length > 0 ? `
+          <div class="phase-section">
+            <div class="ps-label">项目建议</div>
+            ${phase.projects.map(p => `
+              <div class="project-item">
+                <div class="pj-name">${p.name}</div>
+                <div class="pj-desc">${p.desc}</div>
+                <div class="pj-why">为什么推荐：${p.whyRecommended}</div>
+              </div>
+            `).join('')}
+          </div>
+          ` : ''}
+
+          <!-- AI Reason -->
+          <div class="phase-section">
+            <div class="ps-label">AI推荐理由</div>
+            <div class="ai-reason">
+              <div class="ar-label">AI Reasoning</div>
+              ${phase.aiReason}
+            </div>
+          </div>
+
+          <!-- Expected Outcome -->
+          <div class="phase-section">
+            <div class="ps-label">预计成长结果</div>
+            <div class="outcome-text">✨ ${phase.expectedOutcome}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  $('timelineArea').innerHTML = `<div class="timeline" id="timeline">${html}</div>`;
+}
+
+function getSkillBg(priority) {
+  if (priority === 'high') return '#fef2f2';
+  if (priority === 'medium') return '#EEF3FF';
+  return '#f8f9fb';
+}
+function getSkillColor(priority) {
+  if (priority === 'high') return '#ef4444';
+  if (priority === 'medium') return '#4F7CFF';
+  return '#5a5f6e';
+}
+
+// ====== Resources ======
+function renderResources(roadmap) {
+  const resources = roadmap.resources || [];
+
+  const typeLabels = {
+    'video': '视频',
+    'article': '文章',
+    'course': '课程',
+    'project': '项目'
+  };
+
+  const cards = resources.map(r => `
+    <div class="resource-card" onclick="window.open('${r.url}', '_blank')">
+      <span class="rc-type ${r.type}">${typeLabels[r.type] || r.type}</span>
+      <div class="rc-title">${r.title}</div>
+      <div class="rc-desc">${r.desc}</div>
+      <div class="rc-skill">关联：${r.forSkill}</div>
+    </div>
+  `).join('');
+
+  $('resourcesArea').innerHTML = `
+    <div class="resources-section" id="resourcesSection">
+      <div class="rs-title">📖 推荐学习资源</div>
+      <div class="resource-grid">${cards}</div>
+    </div>`;
+}
+
+// ====== Next Steps ======
+function renderNextSteps() {
+  $('nextStepsArea').innerHTML = `
+    <div class="next-steps-section" id="nextStepsSection">
+      <div class="ns-title">下一步行动</div>
+      <div class="ns-grid">
+        <div class="ns-card" id="nsResumeMatch">
+          <div class="ns-icon" style="background:linear-gradient(135deg,#EEF3FF,#DCE5FF);">🔍</div>
+          <div class="ns-info">
+            <div class="ns-label">重新简历匹配</div>
+            <div class="ns-desc">更新简历后重新匹配岗位要求</div>
+          </div>
+          <span class="ns-arrow">→</span>
+        </div>
+        <div class="ns-card" id="nsHRInterview">
+          <div class="ns-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a);">🎯</div>
+          <div class="ns-info">
+            <div class="ns-label">AI模拟面试</div>
+            <div class="ns-desc">基于岗位和能力差距进行模拟面试训练</div>
+          </div>
+          <span class="ns-arrow">→</span>
+        </div>
+      </div>
+    </div>`;
+
+  $('nsResumeMatch').addEventListener('click', () => {
+    window.location.href = 'resume-match.html';
+  });
+  $('nsHRInterview').addEventListener('click', () => {
+    window.location.href = 'hr-interview.html';
+  });
+}
+
+// ====== Animations ======
+async function animateAll() {
+  const summaryCard = $('summaryCard');
+  const phases = document.querySelectorAll('.phase-wrapper');
+  const timeline = $('timeline');
+  const resources = $('resourcesSection');
+
+  // Stagger reveal
+  await sleep(200);
+
+  // Summary
+  if (summaryCard) {
+    requestAnimationFrame(() => { summaryCard.classList.add('visible'); });
+  }
+  await sleep(300);
+
+  // Phases with stagger
+  for (const phase of phases) {
+    requestAnimationFrame(() => { phase.classList.add('visible'); });
+    await sleep(200);
+  }
+
+  // Draw timeline line
+  if (timeline) {
+    await sleep(100);
+    timeline.classList.add('drawn');
+  }
+
+  await sleep(300);
+
+  // Resources
+  if (resources) {
+    requestAnimationFrame(() => { resources.classList.add('visible'); });
+  }
+
+  await sleep(300);
+
+  // Next Steps
+  const nextSteps = $('nextStepsSection');
+  if (nextSteps) {
+    requestAnimationFrame(() => { nextSteps.classList.add('visible'); });
+  }
+}
+
+// ====== Init ======
+loadData();
+})();
+</script>
+</body>
+</html>
