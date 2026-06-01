@@ -176,6 +176,10 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); min-hei
 .ai-summary::before { content:'AI'; position:absolute; top:-8px; right:16px; background:var(--accent); color:#fff; font-size:9px; font-weight:700; padding:2px 8px; border-radius:10px; }
 .ai-summary .ais-text { font-size:14px; line-height:1.9; color:var(--text2); }
 .ai-summary .ais-text .highlight { background:#fef3c7; padding:1px 3px; border-radius:3px; font-weight:500; }
+.ai-summary .ais-block { margin-bottom:18px; }
+.ai-summary .ais-block:last-child { margin-bottom:0; }
+.ai-summary .ais-label { font-size:12px; font-weight:600; color:var(--text); margin-bottom:4px; letter-spacing:-.1px; }
+.ai-summary .ais-block .ais-text { font-size:13.5px; line-height:1.85; color:var(--text2); padding-left:0; }
 
 /* Frequency Bars */
 .freq-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
@@ -779,28 +783,62 @@ function renderFrequency(skills) {
 }
 
 function renderSummary(skills, direction, competencies, meta) {
-  const sk = skills || {};
-  const d = direction || {};
-  const p = d.primary || {};
-  const comps = competencies || [];
+  var sk = skills || {};
+  var d = direction || {};
+  var p = d.primary || {};
+  var comps = competencies || [];
+  var title = meta.title || '该岗位';
 
-  const totalSkills = Object.values(sk).reduce((s, c) => s + c.keywords.length, 0);
-  const catNames = Object.values(sk).map(c => c.label);
-  const requiredComps = comps.filter(c => c.importance === 'required').map(c => c.name).slice(0, 3);
-  const preferredComps = comps.filter(c => c.importance === 'preferred').map(c => c.name).slice(0, 3);
+  var totalSkills = Object.values(sk).reduce(function(s, c) { return s + c.keywords.length; }, 0);
+  var catNames = Object.values(sk).map(function(c) { return c.label; });
+  var requiredComps = comps.filter(function(c) { return c.importance === 'required'; }).map(function(c) { return c.name; });
+  var preferredComps = comps.filter(function(c) { return c.importance === 'preferred'; }).map(function(c) { return c.name; });
+  var allComps = requiredComps.concat(preferredComps);
 
-  let summary = '';
-  if (p.label) summary += `<span class="highlight">${p.label}</span> 方向，`;
-  if (totalSkills > 0) summary += `共提取 <b>${totalSkills}</b> 个技能关键词，`;
-  if (catNames.length > 0) summary += `覆盖 <b>${catNames.slice(0, 3).join('、')}</b>${catNames.length > 3 ? '等' + catNames.length + '个类别' : ''}。`;
-  if (requiredComps.length > 0) summary += `核心要求是 <b>${requiredComps.join('、')}</b>。`;
-  if (preferredComps.length > 0) summary += `加分项包括 ${preferredComps.join('、')}。`;
+  // Build AI-structured insight paragraphs
+  var directionText = p.label ? ('<b>' + p.label + '</b> 方向') : '综合方向';
+  var coreDirection = '「' + title + '」属于 <b>' + directionText + '</b>，' + (totalSkills > 0 ? ('共提取 <b>' + totalSkills + '</b> 个技能关键词，覆盖 ' + catNames.slice(0, 4).join('、') + '等' + catNames.length + '个类别。') : '技能要求较为综合。');
 
-  $('summaryArea').innerHTML = `
-    <div class="ws-full-card ai-summary">
-      <div class="wf-header"><div class="wf-icon" style="background:var(--accent);color:#fff;">✨</div><h3>AI 总结</h3></div>
-      <div class="wf-body"><p class="ais-text">${summary}</p></div>
-    </div>`;
+  var keyAbilities = '';
+  if (allComps.length > 0) {
+    var topComps = allComps.slice(0, 5);
+    keyAbilities = '该岗位最看重的能力依次为：<b>' + topComps.join('</b>、<b>') + '</b>。';
+    if (requiredComps.length > 0) {
+      keyAbilities += '其中 <b>' + requiredComps.slice(0, 3).join('</b>、<b>') + '</b> 为硬性门槛，必须在简历和面试中重点体现。';
+    }
+  } else {
+    keyAbilities = '建议结合实际JD内容，重点突出AI工具实操经验和创作作品集。';
+  }
+
+  var targetFit = '';
+  if (allComps.length >= 3) {
+    targetFit = '适合具备 <b>' + allComps.slice(0, 3).join('</b>、<b>') + '</b> 等能力的候选人。';
+  }
+  targetFit += '如果你是AI工具重度使用者、有个人项目经验、且愿意在面试中用作品和数据证明自己，匹配度会很高。';
+
+  var barrier = '';
+  if (requiredComps.length > 0) {
+    barrier = '核心门槛在于 <b>' + requiredComps[0] + '</b>' + (requiredComps[1] ? (' 和 <b>' + requiredComps[1] + '</b>') : '') + '，建议投递前针对性补齐。';
+  } else {
+    barrier = '门槛适中，重点关注AI工具熟练度和项目落地能力。';
+  }
+
+  var learningAdvice = '';
+  if (allComps.length > 0) {
+    learningAdvice = '优先补齐 <b>' + (requiredComps[0] || allComps[0]) + '</b>，配合高质量实战项目验证能力。面试时使用 <b>STAR原则</b> 组织项目讲述，用 <b>数据</b> 量化成果。';
+  } else {
+    learningAdvice = '建议制作1-2个AI工具驱动的完整项目作品，面试时展示从需求到落地的全流程思考。';
+  }
+
+  $('summaryArea').innerHTML = '<div class="ws-full-card ai-summary">'
+    + '<div class="wf-header"><div class="wf-icon" style="background:var(--accent);color:#fff;">✨</div><h3>AI 分析总结</h3></div>'
+    + '<div class="wf-body">'
+    + '<div class="ais-block"><div class="ais-label">📌 岗位核心方向</div><p class="ais-text">' + coreDirection + '</p></div>'
+    + '<div class="ais-block"><div class="ais-label">🎯 关键能力画像</div><p class="ais-text">' + keyAbilities + '</p></div>'
+    + '<div class="ais-block"><div class="ais-label">👤 适合什么样的人</div><p class="ais-text">' + targetFit + '</p></div>'
+    + '<div class="ais-block"><div class="ais-label">🚪 进入门槛</div><p class="ais-text">' + barrier + '</p></div>'
+    + '<div class="ais-block"><div class="ais-label">💡 学习与面试建议</div><p class="ais-text">' + learningAdvice + '</p></div>'
+    + '</div></div>';
 }
 
 function renderLearning() {
@@ -905,6 +943,61 @@ function updateOCRUI(st) {
   }
 }
 
+/** Preprocess image for better OCR: grayscale + contrast stretch via Canvas */
+async function preprocessImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const pixels = imageData.data;
+
+      let minVal = 255, maxVal = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const gray = pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114;
+        pixels[i] = pixels[i + 1] = pixels[i + 2] = gray;
+        if (gray < minVal) minVal = gray;
+        if (gray > maxVal) maxVal = gray;
+      }
+
+      const range = maxVal - minVal || 1;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const stretched = ((pixels[i] - minVal) / range) * 255;
+        pixels[i] = pixels[i + 1] = pixels[i + 2] = stretched;
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+      canvas.toBlob(blob => {
+        if (blob) resolve(blob);
+        else reject(new Error('Canvas toBlob failed'));
+      }, 'image/png');
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function cleanOCRText(text) {
+  let t = text;
+  t = t.replace(/[ \t]+/g, ' ');
+  t = t.replace(/\n{3,}/g, '\n\n');
+  t = t.split('\n').map(l => l.trim()).join('\n');
+  // Merge spaces between CJK characters
+  t = t.replace(/([一-鿿㐀-䶿豈-﫿]) +(?=[一-鿿㐀-䶿豈-﫿])/g, '$1');
+  t = t.replace(/([一-鿿㐀-䶿豈-﫿]) +(?=[A-Za-z0-9])/g, '$1');
+  t = t.replace(/([A-Za-z0-9]) +(?=[一-鿿㐀-䶿豈-﫿])/g, '$1');
+  t = t.replace(/\bAl\b/g, 'AI');
+  t = t.replace(/\bAt\b/g, 'AI');
+  t = t.replace(/\bAlGC\b/gi, 'AIGC');
+  t = t.replace(/\bAlgc\b/g, 'AIGC');
+  return t.trim();
+}
+
 async function handleImageFile(file) {
   if (!file || !file.type.startsWith('image/')) return;
 
@@ -915,9 +1008,10 @@ async function handleImageFile(file) {
   updateOCRUI('processing');
 
   try {
+    const preprocessed = await preprocessImage(file);
     const worker = await getOCRWorker();
-    const { data: { text } } = await worker.recognize(file);
-    const cleaned = text.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').split('\n').map(l => l.trim()).join('\n').trim();
+    const { data: { text } } = await worker.recognize(preprocessed);
+    const cleaned = cleanOCRText(text);
 
     if (!cleaned) {
       updateOCRUI('idle');

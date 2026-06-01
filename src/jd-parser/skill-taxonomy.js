@@ -75,6 +75,7 @@
         { en: "海螺AI", zh: "海螺AI", aliases: ["海螺", "Hailuo"], weight: 1.5 },
         { en: "豆包", zh: "豆包", aliases: ["豆包AI", "Doubao"], weight: 1 },
         { en: "Sora", zh: "Sora", aliases: ["sora"], weight: 1.5 },
+        { en: "NanoBanana", zh: "NanoBanana", aliases: ["nanobanana", "Nano Banana"], weight: 1.5 },
         { en: "AI工作流", zh: "AI工作流", aliases: ["AI workflow", "AI pipeline"], weight: 1.5 }
       ]
     },
@@ -216,6 +217,10 @@
         { en: "内容运营", zh: "内容运营", aliases: ["内容策划", "内容策略"], weight: 1.5 },
         { en: "文案写作", zh: "文案写作", aliases: ["文案撰写", "文案", "写作能力", "文字功底"], weight: 1.5 },
         { en: "脚本撰写", zh: "脚本撰写", aliases: ["脚本创作", "脚本策划"], weight: 1.5 },
+        { en: "漫画创作", zh: "漫画创作", aliases: ["漫画制作", "漫画绘制", "漫画"], weight: 1.5 },
+        { en: "分镜设计", zh: "分镜设计", aliases: ["分镜", "故事板", "storyboard"], weight: 1.5 },
+        { en: "色彩搭配", zh: "色彩搭配", aliases: ["配色", "调色", "色彩调整"], weight: 1.5 },
+        { en: "细节优化", zh: "细节优化", aliases: ["细节调整", "精细化", "细节把控"], weight: 1.2 },
         { en: "视频剪辑", zh: "视频剪辑", aliases: ["视频制作", "视频编辑", "剪辑"], weight: 2 },
         { en: "短视频", zh: "短视频", aliases: ["短视频运营", "短视频制作"], weight: 1.5 },
         { en: "社媒运营", zh: "社媒运营", aliases: ["社交媒体运营", "社交媒体"], weight: 1.5 },

@@ -515,10 +515,65 @@ function updateUploadUI(st) {
 
 function cleanOCRText(text) {
   let t = text;
+  // Normalize horizontal whitespace (keep newlines)
   t = t.replace(/[ \t]+/g, ' ');
+  // Remove excessive blank lines
   t = t.replace(/\n{3,}/g, '\n\n');
   t = t.split('\n').map(l => l.trim()).join('\n');
+
+  // Merge spaces between CJK characters (OCR artifact)
+  t = t.replace(/([一-鿿㐀-䶿豈-﫿]) +(?=[一-鿿㐀-䶿豈-﫿])/g, '$1');
+  // Merge spaces between CJK and ASCII alphanumeric when adjacent
+  t = t.replace(/([一-鿿㐀-䶿豈-﫿]) +(?=[A-Za-z0-9])/g, '$1');
+  t = t.replace(/([A-Za-z0-9]) +(?=[一-鿿㐀-䶿豈-﫿])/g, '$1');
+  // Fix OCR: Al → AI, At → AI
+  t = t.replace(/\bAl\b/g, 'AI');
+  t = t.replace(/\bAt\b/g, 'AI');
+  t = t.replace(/\bAlGC\b/gi, 'AIGC');
+  t = t.replace(/\bAlgc\b/g, 'AIGC');
+
   return t.trim();
+}
+
+/** Preprocess image for better OCR: grayscale + contrast stretch via Canvas */
+async function preprocessImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const pixels = imageData.data;
+
+      // Grayscale + find min/max for contrast stretch
+      let minVal = 255, maxVal = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const gray = pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114;
+        pixels[i] = pixels[i + 1] = pixels[i + 2] = gray;
+        if (gray < minVal) minVal = gray;
+        if (gray > maxVal) maxVal = gray;
+      }
+
+      // Contrast stretch: map [minVal, maxVal] → [0, 255]
+      const range = maxVal - minVal || 1;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const stretched = ((pixels[i] - minVal) / range) * 255;
+        pixels[i] = pixels[i + 1] = pixels[i + 2] = stretched;
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+      canvas.toBlob(blob => {
+        if (blob) resolve(blob);
+        else reject(new Error('Canvas toBlob failed'));
+      }, 'image/png');
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
 }
 
 async function handleImageFile(file) {
@@ -531,8 +586,11 @@ async function handleImageFile(file) {
   updateUploadUI('processing');
 
   try {
+    // Preprocess image for better OCR accuracy
+    const preprocessed = await preprocessImage(file);
+
     const worker = await getOCRWorker();
-    const { data: { text } } = await worker.recognize(file);
+    const { data: { text } } = await worker.recognize(preprocessed);
     const cleaned = cleanOCRText(text);
 
     if (!cleaned) {
